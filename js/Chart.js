@@ -22,7 +22,9 @@ class Chart {
 		this.width = width;
 		this.height = height;
 		this.scaleX = 1;
+		this.scaleY = 1;
 		this.visibleAxisXLength = null;
+		this.maxAxisYColumns = 6;
 		this.maxAxisXColumns = 6;
 		this.minAxisXColumns = 2;
 	}
@@ -50,8 +52,10 @@ class Chart {
 		const xColumn = this.columns.filter(item => this.types[item[0]] === Chart.TYPE.X)[0];
 		const lineColumns = this.columns.filter(item => this.types[item[0]] === Chart.TYPE.LINE);
 
-		const scaleX = this.width / (this.visibleAxisXLength || xColumn.length);
-		const scaleY = this.height / this.findMax(lineColumns);
+		this.maxY = this.findMax(lineColumns);
+		
+		this.scaleX = this.width / (this.visibleAxisXLength || xColumn.length);
+		this.scaleY = this.height / this.maxY;
 		for (let i = 0; i < lineColumns.length; i++) {
 			const canvas = this.createCanvas(this.createId(i));
 			this.container.appendChild(canvas);
@@ -64,16 +68,37 @@ class Chart {
 			context.strokeStyle = color;
 			context.moveTo(0, 0);
 			for (let j = 1; j < column.length; j++) {
-				context.lineTo(scaleX * j, scaleY * column[j]);
+				context.lineTo(this.scaleX * j, this.scaleY * column[j]);
 			}
 			context.stroke();
 		}
+		
+		this.drawAxis(xColumn);
+		
 		//const parts = new Date(x).toDateString().split(' ');
 		//const displayedX = parts[1] + ' '  + parts[2];
 	}
 
+	drawAxis(c) {
+		const canvas = this.createCanvas(this.createId('x'));
+		this.container.appendChild(canvas);
+		const context = canvas.getContext('2d');
+		context.beginPath();
+		context.strokeStyle = "gray";
+		
+		let coordY = 0;
+		let stepY = Math.floor(this.maxY / this.maxAxisYColumns);
+		for (let i = 0; i < this.maxAxisXColumns; i++) {
+			context.moveTo(0, coordY);
+			context.lineTo(this.width, coordY);
+			coordY += stepY;
+		}
+		context.stroke();
+		
+	}
+
 	createId(index) {
-		return "chart-canvas-" + index;
+		return this.id + "-canvas-" + index;
 	}
 	
 	createCanvas(id) {

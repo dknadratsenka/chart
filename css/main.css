@@ -2,3 +2,7 @@
 
     padding: 20px;
 }
+
+body > div {
+	margin: 50px 0;
+}

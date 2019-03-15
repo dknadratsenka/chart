@@ -11,6 +11,11 @@ class Chart {
 	 * @param {Object[]} data
 	 */
 	constructor(id, data, width, height) {
+		this.coords = {};
+		this.maxAxisYColumns = 6;
+		this.maxAxisXColumns = 6;
+		this.minAxisXColumns = 2;
+		this.textPadding = 15;
 		this.id = id;
 		this.container = null;
 		this.columns = data.columns;
@@ -19,14 +24,15 @@ class Chart {
 		this.colors = data.colors;
 		this.maxY = null;
 		this.maxX = null;
+		this.minX = null;
 		this.width = width;
-		this.height = height;
+		this.height = height - this.textPadding;
 		this.scaleX = 1;
 		this.scaleY = 1;
-		this.visibleAxisXLength = null;
-		this.maxAxisYColumns = 6;
-		this.maxAxisXColumns = 6;
-		this.minAxisXColumns = 2;
+		this.verticalCanvas = null;
+		this.mouseCoordX = null;
+		this.lines = [];
+		this.selectedCoordX;
 	}
 
 	init() {
@@ -39,69 +45,136 @@ class Chart {
 
 	onDomReady() {
 		this.container = document.getElementById(this.id);
-
 		this.container.width = this.width;
-		this.container.height = this.height;
+		this.container.height = this.height + this.textPadding * 2;
 		this.container.style.width = this.width;
-		this.container.style.height = this.height;
+		this.container.style.height = this.height + this.textPadding * 2;
+		this.verticalCanvas = this.createCanvas(this.createId('vertical-info'));
+		this.container.appendChild(this.verticalCanvas);
+		const context = this.verticalCanvas.getContext('2d');
+		context.translate(0, this.container.height);
+		context.scale(1, -1);
+		this.container.addEventListener("mousemove", this.onMouseMove.bind(this));
 		this.draw();
-		console.log(this);
+	}
+	
+	onMouseMove(event) {
+		event.preventDefault();
+		let x = event.clientX - event.target.offsetLeft;
+		let y = this.height - this.textPadding - event.clientY;
+		const context = this.verticalCanvas.getContext('2d');
+		context.clearRect(0, 0, this.verticalCanvas.width, this.verticalCanvas.height);
+		context.beginPath();
+		context.strokeStyle = "gray";
+		context.lineWidth = 0.3;
+		context.moveTo(x, 0);
+		context.lineTo(x, this.verticalCanvas.height - this.textPadding);
+		this.selectedCoordX = x;
+		context.stroke();
+		this.drawLines();
 	}
 
 	draw() {
 		const xColumn = this.columns.filter(item => this.types[item[0]] === Chart.TYPE.X)[0];
 		const lineColumns = this.columns.filter(item => this.types[item[0]] === Chart.TYPE.LINE);
-
 		this.maxY = this.findMax(lineColumns);
-		
-		this.scaleX = this.width / (this.visibleAxisXLength || xColumn.length);
+		this.scaleX = this.width / xColumn.length;
 		this.scaleY = this.height / this.maxY;
 		for (let i = 0; i < lineColumns.length; i++) {
 			const canvas = this.createCanvas(this.createId(i));
-			this.container.appendChild(canvas);
-			const column = lineColumns[i];
-			const key = column[0];
+			const columns = lineColumns[i];
+			const key = columns.splice(0, 1);
 			const color = this.colors[key];
 			const name = this.names[key];
+			const lineCanvas = new LineCanvas(
+				this,
+				canvas,
+				columns,
+				color,
+				name,
+				this.textPadding
+			);
+			this.lines.push(lineCanvas)
+			this.container.appendChild(canvas);
 			const context = canvas.getContext('2d');
-			context.beginPath();
-			context.strokeStyle = color;
-			context.moveTo(0, 0);
-			for (let j = 1; j < column.length; j++) {
-				context.lineTo(this.scaleX * j, this.scaleY * column[j]);
-			}
-			context.stroke();
+			context.translate(0, this.container.height);
+			context.scale(1, -1);
 		}
-		
+		this.drawLines();
 		this.drawAxis(xColumn);
-		
-		//const parts = new Date(x).toDateString().split(' ');
-		//const displayedX = parts[1] + ' '  + parts[2];
 	}
 
-	drawAxis(c) {
+	drawLines() {
+		for (let i = 0; i < this.lines.length; i++) {
+			this.lines[i].draw();
+		}
+	}
+	
+	drawAxis(xColumn) {
+		this.maxX = new Date(this.findMax(xColumn));
+		this.minX = new Date(this.findMin(xColumn));
+		const stepX = (this.maxX - this.minX) / this.maxAxisXColumns;
+		const stepCoordX = this.width / this.maxAxisXColumns;
+		let coordValueX = stepCoordX;
 		const canvas = this.createCanvas(this.createId('x'));
 		this.container.appendChild(canvas);
 		const context = canvas.getContext('2d');
 		context.beginPath();
 		context.strokeStyle = "gray";
-		
-		let coordY = 0;
-		let stepY = Math.floor(this.maxY / this.maxAxisYColumns);
+		context.lineWidth = 0.3;
+		context.font = "10px gray";
+		let valueY = 0;
+		let valueX = this.minX;
+		let stepY = this.round(this.maxY / this.maxAxisYColumns);
 		for (let i = 0; i < this.maxAxisXColumns; i++) {
+			const coordY = this.height + this.textPadding - valueY * this.scaleY;
 			context.moveTo(0, coordY);
 			context.lineTo(this.width, coordY);
-			coordY += stepY;
+			context.fillText(valueY, 0, coordY - 5);
+			
+
+			context.fillText(this.fromDateToMMDD(valueX), coordValueX, this.height + this.textPadding * 2);
+
+			
+			valueX = new Date(valueX.getTime() + stepX);
+			valueY += stepY;
+			coordValueX += stepCoordX;
 		}
 		context.stroke();
-		
+	}
+	
+	fromDateToMMDD(date) {
+		const parts = date.toDateString().split(' ');
+		return parts[1] + ' '  + parts[2];
+	}
+	
+	round(d) {
+		let str = String(Math.round(d));
+		let pow = 1;
+		if (str.length > 4) {
+			pow = str.length - 1;
+		} else if (str.length > 3) {
+			pow = str.length - 2;
+		}
+		return (Math.ceil(d / Math.pow(10, pow)) * Math.pow(10, pow));
 	}
 
-	createId(index) {
-		return this.id + "-canvas-" + index;
+	createId(id) {
+		return this.id + "-canvas-" + id;
 	}
 	
 	createCanvas(id) {
+		const canvas = document.createElement('canvas');
+		canvas.width = this.width;
+		canvas.height = this.height + this.textPadding * 2;
+		canvas.style.width = this.width;
+		canvas.style.height = this.height + this.textPadding * 2;
+		canvas.style.position = "absolute";
+		canvas.id = id;
+		return canvas;
+	}
+	
+	createVerticalCanvas(id) {
 		const canvas = document.createElement('canvas');
 		canvas.width = this.width;
 		canvas.height = this.height;
@@ -109,9 +182,6 @@ class Chart {
 		canvas.style.height = this.height;
 		canvas.style.position = "absolute";
 		canvas.id = id;
-		const context = canvas.getContext('2d');
-		context.translate(0, this.container.height);
-		context.scale(1, -1);
 		return canvas;
 	}
 	
@@ -125,6 +195,15 @@ class Chart {
 		return max;
 	}
 
+	findMin(arrays) {
+		const arr = [].concat.apply([], arrays)
+		let min = null;
+		for (let i = 1; i < arr.length; i++) {
+			var item = arr[i];
+			if (typeof item === "number" && (item < min || !min)) min = item;
+		}
+		return min;
+	}
 
 
 	//

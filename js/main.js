@@ -141,7 +141,6 @@ var a = [...Array(99000)].map(() => {
 var b = a.map((e) => e.y);
 const before = Date.now();
 findMax(b);
-console.log(`Sort: ${(Date.now() - before) / 1000}sec`);
 
 
 const before1 = Date.now();
@@ -150,7 +149,6 @@ try {
 } catch (e) {
 	console.log("Error of Math.max");
 }
-console.log(`Sort: ${(Date.now() - before1) / 1000}sec`);
 
 function findMax(arr) {
 	let max = arr[0];

@@ -9,14 +9,9 @@ class LineCanvas {
 		this.offsetY = offsetY;
 	}
 	
-	redraw(){
-		const context = this.canvas.getContext('2d');
-		context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		this.draw();
-	}
-	
 	draw() {
 		const context = this.canvas.getContext('2d');
+		context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		context.beginPath();
 		context.strokeStyle = this.color;
 		context.moveTo(0, this.offsetY + this.scaleY * this.columns[0]);

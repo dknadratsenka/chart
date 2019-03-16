@@ -31,7 +31,9 @@ class Chart {
 		this.verticalCanvas = null;
 		this.lines = [];
 		this.selectedCoordX;
-		this.areaCanvas;
+		this.DRAG_ITEM_WIDTH = 5;
+		this.leftBlock;
+		this.rightBlock;
 	}
 
 	init() {
@@ -45,34 +47,32 @@ class Chart {
 	onDomReady() {
 		const container = document.getElementById(this.id);
 		if (!container) return;
-		container.style.height = this.fullHeight;
-		container.style.width = this.fullWidth;
+		container.style.height = this.fullHeight + "px";
+		container.style.width = this.fullWidth + "px";
 
 		const areaCanvasHeight = Math.round(this.fullHeight / 6);
+		const mainCanvasHeight = this.fullHeight - areaCanvasHeight;
 		this.height = this.fullHeight - this.textPadding * 2 - areaCanvasHeight;
 
-
-		const areaContainer = this.createAreaCanvas(areaCanvasHeight);
+		const PADDING_TOP = 10;
+		const areaContainer = this.createControlArea(areaCanvasHeight - PADDING_TOP);
+		areaContainer.style.paddingTop = PADDING_TOP + "px";
 
 		const mainCanvasContainer = document.createElement("div");
 		this.container = mainCanvasContainer;
 
-		mainCanvasContainer.width = "100%";
-		mainCanvasContainer.height = this.height + this.textPadding * 2;
 		mainCanvasContainer.style.width = "100%";
-		mainCanvasContainer.style.height = this.height + this.textPadding * 2;
+		mainCanvasContainer.style.height = mainCanvasHeight + "px";
 
-		this.verticalCanvas = this.createCanvas(this.createId('vertical-info'));
-		const context = this.verticalCanvas.getContext('2d');
-		context.translate(0, this.container.height);
-		context.scale(1, -1);
+		this.verticalCanvas = this.createCanvas(this.createId('vertical-info'), mainCanvasHeight, this.width, true);
+
 
 		mainCanvasContainer.appendChild(this.verticalCanvas);
 
 		container.appendChild(mainCanvasContainer);
 		container.appendChild(areaContainer);
 
-
+		this.areaContainer = areaContainer;
 		mainCanvasContainer.addEventListener("mousemove", this.onMouseMove.bind(this));
 		this.draw();
 	}
@@ -117,7 +117,7 @@ class Chart {
 		context.lineTo(coords.x, this.verticalCanvas.height - this.textPadding);
 		context.stroke();
 		this.selectedCoordX = coords.x;
-		this.drawLinesAndArcs(this.lines);
+		this.drawLines(this.lines);
 	}
 
 	draw() {
@@ -129,7 +129,7 @@ class Chart {
 		this.scaleX = this.width / (xColumn.length - 1);
 		this.scaleY = this.height / this.maxY;
 		for (let i = 0; i < lineColumns.length; i++) {
-			const canvas = this.createCanvas(this.createId(i));
+			const canvas = this.createCanvas(this.createId(i), this.container.offsetHeight, this.width, true);
 			const columns = lineColumns[i];
 			const key = columns.splice(0, 1);
 			const color = this.colors[key];
@@ -145,36 +145,29 @@ class Chart {
 			);
 			this.lines.push(lineCanvas);
 			this.container.appendChild(canvas);
-			const context = canvas.getContext('2d');
-			context.translate(0, this.container.height);
-			context.scale(1, -1);
 
+			const areaCanvas = this.createCanvas(this.createId("area-canvas-" + i), this.areaContainer.offsetHeight, this.width, true);
 			const areaLineCanvas = new LineCanvas(
 				this,
-				this.areaCanvas,
+				areaCanvas,
 				columns,
 				color,
 				name,
-				this.areaCanvas.height / this.maxY,
+				areaCanvas.height / this.maxY,
 				0
 			);
+			this.areaContainer.appendChild(areaCanvas);
 			areaLines.push(areaLineCanvas)
 		}
-		this.drawLinesAndArcs(this.lines);
+		this.drawLines(this.lines);
 		this.drawLines(areaLines);
 		this.drawAxis(xColumn);
-	}
-
-	drawLinesAndArcs(lines) {
-		for (let i = 0; i < lines.length; i++) {
-			lines[i].redraw();
-			lines[i].drawArcs();
-		}
 	}
 
 	drawLines(lines) {
 		for (let i = 0; i < lines.length; i++) {
 			lines[i].draw();
+			lines[i].drawArcs();
 		}
 	}
 
@@ -184,7 +177,7 @@ class Chart {
 		const stepX = (this.maxX - this.minX) / this.maxAxisXColumns;
 		const stepCoordX = this.width / this.maxAxisXColumns;
 		let coordValueX = stepCoordX;
-		const canvas = this.createCanvas(this.createId('x'));
+		const canvas = this.createCanvas(this.createId('x'), this.container.offsetHeight, this.width);
 		this.container.appendChild(canvas);
 
 		const context = canvas.getContext('2d');
@@ -232,153 +225,158 @@ class Chart {
 		return this.id + "-canvas-" + id;
 	}
 
-	createCanvas(id) {
+	createCanvas(id, height, width, isTranslated) {
 		const canvas = document.createElement('canvas');
-		canvas.width = this.width;
-		canvas.height = this.height + this.textPadding * 2;
-		canvas.style.width = this.width;
-		canvas.style.height = this.height + this.textPadding * 2;
+		canvas.width = width;
+		canvas.height = height;
+		canvas.style.width = width + "px";
+		canvas.style.height = height + "px";
 		canvas.style.position = "absolute";
 		canvas.id = id;
+
+		if (isTranslated) {
+			const context = canvas.getContext('2d');
+			context.translate(0, height);
+			context.scale(1, -1);
+		}
 		return canvas;
 	}
 
-	createAreaCanvas(height) {
-		const MIN_VISIBLE_AREA = 20;
-		const DRAG_ITEM_WIDTH = 5;
-		const PADDING_TOP = 10;
-		const chartHeight = height - PADDING_TOP;
-
-		const canvas = document.createElement('canvas');
-		canvas.width = this.width;
-		canvas.height = chartHeight;
-		canvas.style.width = "100%";
-		canvas.style.height = chartHeight;
-		canvas.style.position = "absolute";
-		canvas.style.cursor = "pointer";
-		canvas.style.borderTop = "1px solid rgb(40, 112, 160)";
-		canvas.style.borderBottom = "1px solid rgb(40, 112, 160)";
-
-		canvas.id = this.id + "-area-canvas";
-		const context = canvas.getContext('2d');
-		context.translate(0, chartHeight);
-		context.scale(1, -1);
-
-
+	createControlArea(chartHeight) {
 		const areaContainer = document.createElement("div");
-		areaContainer.style.paddingTop = PADDING_TOP;
 		areaContainer.style.position = "relative";
-		areaContainer.appendChild(canvas);
+		areaContainer.style.height = chartHeight;
+		areaContainer.style.boxSizing = "border-box";
 
-		const leftBlock = createDraggableArea(chartHeight, true);
-		const rightBlock = createDraggableArea(chartHeight, false);
+		const bottomHeight = chartHeight;
 
-		addResizableBlockEvent(leftBlock.firstChild, leftBlock, true, rightBlock);
-		addResizableBlockEvent(rightBlock.firstChild, rightBlock, false, leftBlock);
-		addDraggableArea(canvas);
+		const leftBlock = this.createDraggableAreaBlock(bottomHeight, true);
+		const rightBlock = this.createDraggableAreaBlock(bottomHeight, false);
+
+		this.leftBlock = leftBlock;
+		this.rightBlock = rightBlock;
+
+		this.addResizableBlockEvent(leftBlock.firstChild, leftBlock, true, rightBlock);
+		this.addResizableBlockEvent(rightBlock.firstChild, rightBlock, false, leftBlock);
+		const area = this.createDraggableArea(bottomHeight, leftBlock, rightBlock);
 
 		areaContainer.appendChild(leftBlock);
+		areaContainer.appendChild(area);
 		areaContainer.appendChild(rightBlock);
-
-		this.areaCanvas = canvas;
 		return areaContainer;
+	}
 
-		function createDraggableArea(height, left) {
-			const div = document.createElement("div");
-			div.style.height = height;
-			div.style.width = "50px";
-			div.style.background = "rgb(227, 239, 247)";
-			div.style.display = "inline-block";
-			div.style.position = "absolute";
-			div.style.opacity = 0.5;
-
-			left ? div.style.left = 0 : div.style.right = 0;
-
-			const dragDiv = document.createElement("div");
-			dragDiv.style.height = height;
-			dragDiv.style.width = DRAG_ITEM_WIDTH;
-			dragDiv.style.background = "rgb(40, 112, 160)";
-			dragDiv.style.opacity = 0.5;
-			dragDiv.style.position = "absolute";
-			dragDiv.style.cursor = "e-resize";
-
-			left ? dragDiv.style.right = 0 : dragDiv.style.left = 0;
-
-			div.appendChild(dragDiv);
-			return div;
+	createDraggableAreaBlock(height, left) {
+		const div = document.createElement("div");
+		div.style.height = height + "px";
+		div.style.width = this.DRAG_ITEM_WIDTH + "px";
+		div.style.background = "rgb(227, 239, 247)";
+		div.style.display = "inline-block";
+		div.style.position = "absolute";
+		div.style.opacity = 0.5;
 
 
-		}
+		left ? div.style.left = 0 : div.style.right = 0;
 
-		function addDraggableArea(area) {
-			area.onmousedown = function (event) {
-				document.addEventListener('mousemove', onMouseMove);
-				document.addEventListener('mouseup', onMouseUp);
+		const dragDiv = document.createElement("div");
+		dragDiv.style.height = height + "px";
+		dragDiv.style.width = this.DRAG_ITEM_WIDTH + "px";
+		dragDiv.style.background = "rgb(40, 112, 160)";
+		dragDiv.style.opacity = 0.5;
+		dragDiv.style.position = "absolute";
+		dragDiv.style.cursor = "e-resize";
+		div.style.zIndex = 2;
 
-				function onMouseUp() {
+		left ? dragDiv.style.right = 0 : dragDiv.style.left = 0;
 
-					document.removeEventListener('mousemove', onMouseMove);
-					document.removeEventListener('mouseup', onMouseUp);
+		div.appendChild(dragDiv);
+		return div;
+	}
+
+	createDraggableArea(height, leftBlock, rightBlock) {
+		const area = document.createElement("div");
+		area.style.cursor = "pointer";
+		area.style.borderTop = "1px solid rgb(40, 112, 160)";
+		area.style.borderBottom = "1px solid rgb(40, 112, 160)";
+		area.style.boxSizing = "border-box";
+		area.style.height = height + "px";
+		area.style.width = this.width + "px";
+		area.style.zIndex = 1;
+		area.style.display = "inline-block";
+		area.style.position = "absolute";
+
+		const DRAG_ITEM_WIDTH = this.DRAG_ITEM_WIDTH;
+		area.onmousedown = function (event) {
+			document.addEventListener('mousemove', onMouseMove);
+			document.addEventListener('mouseup', onMouseUp);
+
+			function onMouseUp() {
+
+				document.removeEventListener('mousemove', onMouseMove);
+				document.removeEventListener('mouseup', onMouseUp);
+			}
+
+			function onMouseMove(event) {
+				if (!area.parentElement.contains(event.target)) {
+					onMouseUp();
+					return;
 				}
 
-				function onMouseMove(event) {
-					if (!canvas.parentElement.contains(event.target)) {
-						onMouseUp();
-						return;
-					}
-
-					const step = event.movementX;
-					const leftBlockWidth = leftBlock.offsetWidth + step;
-					const rightBlockWidth = rightBlock.offsetWidth - step;
-					if (leftBlockWidth < DRAG_ITEM_WIDTH || rightBlockWidth < DRAG_ITEM_WIDTH) {
-						return;
-					}
-					leftBlock.style.width = leftBlockWidth + "px";
-					rightBlock.style.width = rightBlockWidth + "px";
+				const step = event.movementX;
+				const leftBlockWidth = leftBlock.offsetWidth + step;
+				const rightBlockWidth = rightBlock.offsetWidth - step;
+				if (leftBlockWidth < DRAG_ITEM_WIDTH || rightBlockWidth < DRAG_ITEM_WIDTH) {
+					return;
 				}
-			};
+				leftBlock.style.width = leftBlockWidth + "px";
+				rightBlock.style.width = rightBlockWidth + "px";
+			}
+		};
 
-			area.ondragstart = function () {
-				return false;
-			};
-		}
+		area.ondragstart = function () {
+			return false;
+		};
 
-		function addResizableBlockEvent(element, container, left, otherBlock) {
-			element.onmousedown = function (event) {
-				document.addEventListener('mousemove', onMouseMove);
-				document.addEventListener('mouseup', onMouseUp);
-				function onMouseUp() {
-					document.removeEventListener('mousemove', onMouseMove);
-					document.removeEventListener('mouseup', onMouseUp);
+		return area;
+	}
+
+	addResizableBlockEvent(element, container, left, otherBlock) {
+		const MIN_VISIBLE_AREA = 20;
+		const DRAG_ITEM_WIDTH = this.DRAG_ITEM_WIDTH;
+		element.onmousedown = function (event) {
+			document.addEventListener('mousemove', onMouseMove);
+			document.addEventListener('mouseup', onMouseUp);
+			function onMouseUp() {
+				document.removeEventListener('mousemove', onMouseMove);
+				document.removeEventListener('mouseup', onMouseUp);
+			}
+
+			function onMouseMove(event) {
+				const elementX = element.getBoundingClientRect().x;
+				if ((left && elementX < event.clientX && event.movementX < 0)
+					|| (left && elementX > event.clientX && event.movementX > 0)
+					|| (!left && event.clientX < elementX && event.movementX > 0)
+					|| (!left && event.clientX > elementX && event.movementX < 0)
+				) {
+					return;
 				}
+				const maxWidth = this.width - otherBlock.offsetWidth - MIN_VISIBLE_AREA;
+				let resultWidth = left
+					? container.offsetWidth + event.movementX
+					: container.offsetWidth - event.movementX;
 
-				function onMouseMove(event) {
-					const elementX = element.getBoundingClientRect().x;
-					if ((left && elementX < event.clientX && event.movementX < 0)
-						|| (left && elementX > event.clientX && event.movementX > 0)
-						|| (!left && event.clientX < elementX && event.movementX > 0)
-						|| (!left && event.clientX > elementX && event.movementX < 0)
-					) {
-						return;
-					}
-					const maxWidth = canvas.width - otherBlock.offsetWidth - MIN_VISIBLE_AREA;
-					let resultWidth = left
-						? container.offsetWidth + event.movementX
-						: container.offsetWidth - event.movementX;
-
-					if (resultWidth > maxWidth) {
-						resultWidth = maxWidth;
-					} else if (resultWidth < DRAG_ITEM_WIDTH) {
-						resultWidth = DRAG_ITEM_WIDTH;
-					}
-					container.style.width = resultWidth + "px";
+				if (resultWidth > maxWidth) {
+					resultWidth = maxWidth;
+				} else if (resultWidth < DRAG_ITEM_WIDTH) {
+					resultWidth = DRAG_ITEM_WIDTH;
 				}
-			};
+				container.style.width = resultWidth + "px";
+			}
+		};
 
-			element.ondragstart = function () {
-				return false;
-			};
-		}
+		element.ondragstart = function () {
+			return false;
+		};
 	}
 
 	findMax(arrays) {

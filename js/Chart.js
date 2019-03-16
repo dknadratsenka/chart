@@ -6,15 +6,12 @@ class Chart {
 	};
 
 	/**
-	 *
 	 * @param id
 	 * @param {Object[]} data
 	 */
 	constructor(id, data, width, height) {
-		this.coords = {};
 		this.maxAxisYColumns = 6;
 		this.maxAxisXColumns = 6;
-		this.minAxisXColumns = 2;
 		this.textPadding = 15;
 		this.id = id;
 		this.container = null;
@@ -32,7 +29,6 @@ class Chart {
 		this.scaleX = 1;
 		this.scaleY = 1;
 		this.verticalCanvas = null;
-		this.mouseCoordX = null;
 		this.lines = [];
 		this.selectedCoordX;
 		this.areaCanvas;
@@ -119,8 +115,8 @@ class Chart {
 		context.lineWidth = 0.3;
 		context.moveTo(coords.x, 0);
 		context.lineTo(coords.x, this.verticalCanvas.height - this.textPadding);
-		this.selectedCoordX = coords.x;
 		context.stroke();
+		this.selectedCoordX = coords.x;
 		this.drawLinesAndArcs(this.lines);
 	}
 
@@ -183,8 +179,6 @@ class Chart {
 	}
 
 	drawAxis(xColumn) {
-		const scaleYAreaCanvas = this.areaCanvas.height / this.maxY;
-
 		this.maxX = new Date(this.findMax(xColumn));
 		this.minX = new Date(this.findMin(xColumn));
 		const stepX = (this.maxX - this.minX) / this.maxAxisXColumns;
@@ -360,7 +354,11 @@ class Chart {
 
 				function onMouseMove(event) {
 					const elementX = element.getBoundingClientRect().x;
-					if ((left && elementX < event.clientX && event.movementX < 0) || (!left && event.clientX < elementX && event.movementX > 0)) {
+					if ((left && elementX < event.clientX && event.movementX < 0)
+						|| (left && elementX > event.clientX && event.movementX > 0)
+						|| (!left && event.clientX < elementX && event.movementX > 0)
+						|| (!left && event.clientX > elementX && event.movementX < 0)
+					) {
 						return;
 					}
 					const maxWidth = canvas.width - otherBlock.offsetWidth - MIN_VISIBLE_AREA;

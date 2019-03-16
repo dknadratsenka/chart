@@ -43,7 +43,7 @@ var arr = [...Array(99000)].map(() => {
 	return {x: Math.floor(Math.random() * 10000), y: Math.floor(Math.random() * 10000)};
 });
 
-var chart = new Chart("chart-container-0", data[0], 600, 300);
+var chart = new Chart("chart-container-0", data[0], 1000, 800);
 chart.init();
 var chart1 = new Chart("chart-container-1", data[1], 600, 300);
 chart1.init();

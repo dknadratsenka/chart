@@ -53,9 +53,7 @@ class Chart {
 		container.style.width = this.fullWidth;
 
 		const areaCanvasHeight = Math.round(this.fullHeight / 6);
-		this.height = this.fullHeight - this.textPadding *2 - areaCanvasHeight;
-		
-
+		this.height = this.fullHeight - this.textPadding * 2 - areaCanvasHeight;
 
 
 		const areaContainer = this.createAreaCanvas(areaCanvasHeight);
@@ -64,15 +62,15 @@ class Chart {
 		this.container = mainCanvasContainer;
 
 		mainCanvasContainer.width = "100%";
-		mainCanvasContainer.height = this.height + this.textPadding *2;
+		mainCanvasContainer.height = this.height + this.textPadding * 2;
 		mainCanvasContainer.style.width = "100%";
-		mainCanvasContainer.style.height = this.height + this.textPadding *2;
-		
+		mainCanvasContainer.style.height = this.height + this.textPadding * 2;
+
 		this.verticalCanvas = this.createCanvas(this.createId('vertical-info'));
 		const context = this.verticalCanvas.getContext('2d');
 		context.translate(0, this.container.height);
 		context.scale(1, -1);
-		
+
 		mainCanvasContainer.appendChild(this.verticalCanvas);
 
 		container.appendChild(mainCanvasContainer);
@@ -83,9 +81,7 @@ class Chart {
 		this.draw();
 	}
 
-	onMouseMove(e) {
-		e.preventDefault();
-
+	findRelativeMouseCoords(e) {
 		let m_posx = 0, m_posy = 0, e_posx = 0, e_posy = 0,
 			obj = e.target;
 		//get mouse position on document crossbrowser
@@ -108,17 +104,22 @@ class Chart {
 				e_posy += obj.offsetTop;
 			} while (obj = obj.offsetParent);
 		}
-		const x = m_posx-e_posx;
-		const y = m_posy-e_posy;
+		return {x: m_posx - e_posx, y: m_posy - e_posy}
+	}
+
+	onMouseMove(event) {
+		event.preventDefault();
+
+		const coords = this.findRelativeMouseCoords(event);
 
 		const context = this.verticalCanvas.getContext('2d');
 		context.clearRect(0, 0, this.verticalCanvas.width, this.verticalCanvas.height);
 		context.beginPath();
 		context.strokeStyle = "gray";
 		context.lineWidth = 0.3;
-		context.moveTo(x, 0);
-		context.lineTo(x, this.verticalCanvas.height - this.textPadding);
-		this.selectedCoordX = x;
+		context.moveTo(coords.x, 0);
+		context.lineTo(coords.x, this.verticalCanvas.height - this.textPadding);
+		this.selectedCoordX = coords.x;
 		context.stroke();
 		this.drawLinesAndArcs(this.lines);
 	}
@@ -151,7 +152,7 @@ class Chart {
 			const context = canvas.getContext('2d');
 			context.translate(0, this.container.height);
 			context.scale(1, -1);
-			
+
 			const areaLineCanvas = new LineCanvas(
 				this,
 				this.areaCanvas,
@@ -174,16 +175,16 @@ class Chart {
 			lines[i].drawArcs();
 		}
 	}
-	
+
 	drawLines(lines) {
 		for (let i = 0; i < lines.length; i++) {
 			lines[i].draw();
 		}
 	}
-	
+
 	drawAxis(xColumn) {
 		const scaleYAreaCanvas = this.areaCanvas.height / this.maxY;
-		
+
 		this.maxX = new Date(this.findMax(xColumn));
 		this.minX = new Date(this.findMin(xColumn));
 		const stepX = (this.maxX - this.minX) / this.maxAxisXColumns;
@@ -206,22 +207,22 @@ class Chart {
 			context.moveTo(0, coordY);
 			context.lineTo(this.width, coordY);
 			context.fillText(valueY, 0, coordY - 5);
-			
+
 			context.fillText(this.fromDateToMMDD(valueX), coordValueX, this.height + this.textPadding * 2);
 
-			
+
 			valueX = new Date(valueX.getTime() + stepX);
 			valueY += stepY;
 			coordValueX += stepCoordX;
 		}
 		context.stroke();
 	}
-	
+
 	fromDateToMMDD(date) {
 		const parts = date.toDateString().split(' ');
-		return parts[1] + ' '  + parts[2];
+		return parts[1] + ' ' + parts[2];
 	}
-	
+
 	round(d) {
 		let str = String(Math.round(d));
 		let pow = 1;
@@ -236,7 +237,7 @@ class Chart {
 	createId(id) {
 		return this.id + "-canvas-" + id;
 	}
-	
+
 	createCanvas(id) {
 		const canvas = document.createElement('canvas');
 		canvas.width = this.width;
@@ -247,8 +248,10 @@ class Chart {
 		canvas.id = id;
 		return canvas;
 	}
-	
+
 	createAreaCanvas(height) {
+		const MIN_VISIBLE_AREA = 20;
+		const DRAG_ITEM_WIDTH = 5;
 		const PADDING_TOP = 10;
 		const chartHeight = height - PADDING_TOP;
 
@@ -258,8 +261,9 @@ class Chart {
 		canvas.style.width = "100%";
 		canvas.style.height = chartHeight;
 		canvas.style.position = "absolute";
-
-
+		canvas.style.cursor = "pointer";
+		canvas.style.borderTop = "1px solid rgb(40, 112, 160)";
+		canvas.style.borderBottom = "1px solid rgb(40, 112, 160)";
 
 		canvas.id = this.id + "-area-canvas";
 		const context = canvas.getContext('2d');
@@ -272,11 +276,12 @@ class Chart {
 		areaContainer.style.position = "relative";
 		areaContainer.appendChild(canvas);
 
-		const leftBlock = createDraggableArea(chartHeight);
-		leftBlock.style.left = 0;
+		const leftBlock = createDraggableArea(chartHeight, true);
+		const rightBlock = createDraggableArea(chartHeight, false);
 
-		const rightBlock = createDraggableArea(chartHeight);
-		rightBlock.style.right = 0;
+		addResizableBlockEvent(leftBlock.firstChild, leftBlock, true, rightBlock);
+		addResizableBlockEvent(rightBlock.firstChild, rightBlock, false, leftBlock);
+		addDraggableArea(canvas);
 
 		areaContainer.appendChild(leftBlock);
 		areaContainer.appendChild(rightBlock);
@@ -284,8 +289,7 @@ class Chart {
 		this.areaCanvas = canvas;
 		return areaContainer;
 
-
-		function createDraggableArea(height) {
+		function createDraggableArea(height, left) {
 			const div = document.createElement("div");
 			div.style.height = height;
 			div.style.width = "50px";
@@ -293,10 +297,92 @@ class Chart {
 			div.style.display = "inline-block";
 			div.style.position = "absolute";
 			div.style.opacity = 0.5;
+
+			left ? div.style.left = 0 : div.style.right = 0;
+
+			const dragDiv = document.createElement("div");
+			dragDiv.style.height = height;
+			dragDiv.style.width = DRAG_ITEM_WIDTH;
+			dragDiv.style.background = "rgb(40, 112, 160)";
+			dragDiv.style.opacity = 0.5;
+			dragDiv.style.position = "absolute";
+			dragDiv.style.cursor = "e-resize";
+
+			left ? dragDiv.style.right = 0 : dragDiv.style.left = 0;
+
+			div.appendChild(dragDiv);
 			return div;
+
+
+		}
+
+		function addDraggableArea(area) {
+			area.onmousedown = function (event) {
+				document.addEventListener('mousemove', onMouseMove);
+				document.addEventListener('mouseup', onMouseUp);
+
+				function onMouseUp() {
+
+					document.removeEventListener('mousemove', onMouseMove);
+					document.removeEventListener('mouseup', onMouseUp);
+				}
+
+				function onMouseMove(event) {
+					if (!canvas.parentElement.contains(event.target)) {
+						onMouseUp();
+						return;
+					}
+
+					const step = event.movementX;
+					const leftBlockWidth = leftBlock.offsetWidth + step;
+					const rightBlockWidth = rightBlock.offsetWidth - step;
+					if (leftBlockWidth < DRAG_ITEM_WIDTH || rightBlockWidth < DRAG_ITEM_WIDTH) {
+						return;
+					}
+					leftBlock.style.width = leftBlockWidth + "px";
+					rightBlock.style.width = rightBlockWidth + "px";
+				}
+			};
+
+			area.ondragstart = function () {
+				return false;
+			};
+		}
+
+		function addResizableBlockEvent(element, container, left, otherBlock) {
+			element.onmousedown = function (event) {
+				document.addEventListener('mousemove', onMouseMove);
+				document.addEventListener('mouseup', onMouseUp);
+				function onMouseUp() {
+					document.removeEventListener('mousemove', onMouseMove);
+					document.removeEventListener('mouseup', onMouseUp);
+				}
+
+				function onMouseMove(event) {
+					const elementX = element.getBoundingClientRect().x;
+					if ((left && elementX < event.clientX && event.movementX < 0) || (!left && event.clientX < elementX && event.movementX > 0)) {
+						return;
+					}
+					const maxWidth = canvas.width - otherBlock.offsetWidth - MIN_VISIBLE_AREA;
+					let resultWidth = left
+						? container.offsetWidth + event.movementX
+						: container.offsetWidth - event.movementX;
+
+					if (resultWidth > maxWidth) {
+						resultWidth = maxWidth;
+					} else if (resultWidth < DRAG_ITEM_WIDTH) {
+						resultWidth = DRAG_ITEM_WIDTH;
+					}
+					container.style.width = resultWidth + "px";
+				}
+			};
+
+			element.ondragstart = function () {
+				return false;
+			};
 		}
 	}
-	
+
 	findMax(arrays) {
 		const arr = [].concat.apply([], arrays)
 		let max = null;

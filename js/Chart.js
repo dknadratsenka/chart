@@ -26,14 +26,18 @@ class Chart {
 		this.fullWidth = width;
 		this.fullHeight = height;
 		this.height;
-		this.scaleX = 1;
 		this.scaleY = 1;
 		this.verticalCanvas = null;
+
 		this.lines = [];
+		this.areaLines = [];
+		this.axisCanvas;
+
 		this.selectedCoordX;
 		this.DRAG_ITEM_WIDTH = 5;
 		this.leftBlock;
 		this.rightBlock;
+		this.xValues = this.parseXValues(data);
 	}
 
 	init() {
@@ -42,6 +46,12 @@ class Chart {
 		} else {
 			this.onDomReady();
 		}
+	}
+
+	parseXValues(data) {
+		const xValues = data.columns.filter(item => this.types[item[0]] === Chart.TYPE.X)[0];
+		xValues.splice(0, 1);
+		return xValues;
 	}
 
 	onDomReady() {
@@ -54,9 +64,9 @@ class Chart {
 		const mainCanvasHeight = this.fullHeight - areaCanvasHeight;
 		this.height = this.fullHeight - this.textPadding * 2 - areaCanvasHeight;
 
-		const PADDING_TOP = 10;
-		const areaContainer = this.createControlArea(areaCanvasHeight - PADDING_TOP);
-		areaContainer.style.paddingTop = PADDING_TOP + "px";
+		const MARGIN_TOP = 10;
+		const areaContainer = this.createControlArea(areaCanvasHeight - MARGIN_TOP);
+		areaContainer.style.marginTop = MARGIN_TOP + "px";
 
 		const mainCanvasContainer = document.createElement("div");
 		this.container = mainCanvasContainer;
@@ -74,6 +84,8 @@ class Chart {
 
 		this.areaContainer = areaContainer;
 		mainCanvasContainer.addEventListener("mousemove", this.onMouseMove.bind(this));
+		this.createCanvases();
+		this.updateScales();
 		this.draw();
 	}
 
@@ -107,7 +119,6 @@ class Chart {
 		event.preventDefault();
 
 		const coords = this.findRelativeMouseCoords(event);
-
 		const context = this.verticalCanvas.getContext('2d');
 		context.clearRect(0, 0, this.verticalCanvas.width, this.verticalCanvas.height);
 		context.beginPath();
@@ -117,17 +128,41 @@ class Chart {
 		context.lineTo(coords.x, this.verticalCanvas.height - this.textPadding);
 		context.stroke();
 		this.selectedCoordX = coords.x;
-		this.drawLines(this.lines);
+		this.drawLines();
 	}
 
-	draw() {
-		const areaLines = [];
-		const xColumn = this.columns.filter(item => this.types[item[0]] === Chart.TYPE.X)[0];
-		xColumn.splice(0, 1);
+	getLeftBoundaryIndex() {
+		const index = (this.leftBlock.offsetWidth - this.DRAG_ITEM_WIDTH) / this.scaleX;
+		return Math.round(index);
+	}
+
+	getRightBoundaryIndex() {
+		const index = (this.rightBlock.offsetWidth - this.DRAG_ITEM_WIDTH) / this.scaleX;
+		return Math.round(index);
+	}
+
+	updateScales() {
+		this.selectedCoordX = 0;
+		const leftIndex = this.getLeftBoundaryIndex();
+		const rightIndex = this.getRightBoundaryIndex();
+
+		const visibleValuesY = [];
+		this.lines.forEach(line => {
+			line.recalculateBoundaries(leftIndex, rightIndex);
+			visibleValuesY.push(line.columnsToDraw);
+		});
+		this.maxY = this.findMax(visibleValuesY);
+		this.lines.forEach(line => line.maxY = this.maxY);
+		this.scaleY = this.height / this.maxY;
+	}
+
+	createCanvases() {
 		const lineColumns = this.columns.filter(item => this.types[item[0]] === Chart.TYPE.LINE);
 		this.maxY = this.findMax(lineColumns);
-		this.scaleX = this.width / (xColumn.length - 1);
 		this.scaleY = this.height / this.maxY;
+
+		this.scaleX = this.width / (this.xValues.length - 1);
+
 		for (let i = 0; i < lineColumns.length; i++) {
 			const canvas = this.createCanvas(this.createId(i), this.container.offsetHeight, this.width, true);
 			const columns = lineColumns[i];
@@ -140,8 +175,10 @@ class Chart {
 				columns,
 				color,
 				name,
-				this.scaleY,
-				this.textPadding
+				this.height,
+				this.textPadding,
+				this.scaleX,
+				this.maxY
 			);
 			this.lines.push(lineCanvas);
 			this.container.appendChild(canvas);
@@ -153,48 +190,80 @@ class Chart {
 				columns,
 				color,
 				name,
-				areaCanvas.height / this.maxY,
-				0
+				areaCanvas.height,
+				0,
+				this.scaleX,
+				this.maxY
 			);
 			this.areaContainer.appendChild(areaCanvas);
-			areaLines.push(areaLineCanvas)
+			this.areaLines.push(areaLineCanvas)
 		}
-		this.drawLines(this.lines);
-		this.drawLines(areaLines);
-		this.drawAxis(xColumn);
+
+		const axisCanvas = this.createCanvas(this.createId('x'), this.container.offsetHeight, this.width);
+		this.container.appendChild(axisCanvas);
+
+		const context = axisCanvas.getContext('2d');
+		context.strokeStyle = "gray";
+		context.lineWidth = 0.3;
+		context.font = "10px gray";
+		this.axisCanvas = axisCanvas;
 	}
 
-	drawLines(lines) {
-		for (let i = 0; i < lines.length; i++) {
-			lines[i].draw();
-			lines[i].drawArcs();
+	draw() {
+		this.drawLines();
+		this.drawAreaLines();
+		this.drawAxis();
+	}
+
+	drawLines() {
+		for (let i = 0; i < this.lines.length; i++) {
+			const line = this.lines[i];
+			line.draw();
+			line.drawArcs();
 		}
 	}
 
-	drawAxis(xColumn) {
+	drawAreaLines() {
+		for (let i = 0; i < this.areaLines.length; i++) {
+			this.areaLines[i].draw();
+		}
+	}
+
+	applyBoundaries(columns, leftIndex, rightIndex) {
+		const newColumns = columns.slice();
+		if (leftIndex) {
+			newColumns.splice(0, leftIndex);
+		}
+		if (rightIndex) {
+			newColumns.splice(newColumns.length - 1 - rightIndex, newColumns.length);
+		}
+		return newColumns;
+	}
+
+	drawAxis() {
+		const leftIndex = this.getLeftBoundaryIndex();
+		const rightIndex = this.getRightBoundaryIndex();
+		const xColumn = this.applyBoundaries(this.xValues, leftIndex, rightIndex);
+		const scaleY = this.height / this.maxY;
+
 		this.maxX = new Date(this.findMax(xColumn));
 		this.minX = new Date(this.findMin(xColumn));
 		const stepX = (this.maxX - this.minX) / this.maxAxisXColumns;
 		const stepCoordX = this.width / this.maxAxisXColumns;
 		let coordValueX = stepCoordX;
-		const canvas = this.createCanvas(this.createId('x'), this.container.offsetHeight, this.width);
-		this.container.appendChild(canvas);
 
-		const context = canvas.getContext('2d');
+		const context = this.axisCanvas.getContext('2d');
 		context.beginPath();
-		context.strokeStyle = "gray";
-		context.lineWidth = 0.3;
-		context.font = "10px gray";
+		context.clearRect(0, 0, this.width, this.container.offsetHeight);
 
 		let valueY = 0;
 		let valueX = this.minX;
 		let stepY = this.round(this.maxY / this.maxAxisYColumns);
 		for (let i = 0; i < this.maxAxisXColumns; i++) {
-			const coordY = this.height + this.textPadding - valueY * this.scaleY;
+			const coordY = this.height + this.textPadding - valueY * scaleY;
 			context.moveTo(0, coordY);
 			context.lineTo(this.width, coordY);
 			context.fillText(valueY, 0, coordY - 5);
-
 			context.fillText(this.fromDateToMMDD(valueX), coordValueX, this.height + this.textPadding * 2);
 
 
@@ -304,7 +373,7 @@ class Chart {
 		area.style.zIndex = 1;
 		area.style.display = "inline-block";
 		area.style.position = "absolute";
-
+		const that = this;
 		const DRAG_ITEM_WIDTH = this.DRAG_ITEM_WIDTH;
 		area.onmousedown = function (event) {
 			document.addEventListener('mousemove', onMouseMove);
@@ -330,6 +399,7 @@ class Chart {
 				}
 				leftBlock.style.width = leftBlockWidth + "px";
 				rightBlock.style.width = rightBlockWidth + "px";
+				that.applyScales();
 			}
 		};
 
@@ -340,9 +410,16 @@ class Chart {
 		return area;
 	}
 
+	applyScales() {
+		this.updateScales();
+		this.drawLines();
+		this.drawAxis();
+	}
+
 	addResizableBlockEvent(element, container, left, otherBlock) {
 		const MIN_VISIBLE_AREA = 20;
 		const DRAG_ITEM_WIDTH = this.DRAG_ITEM_WIDTH;
+		const that = this;
 		element.onmousedown = function (event) {
 			document.addEventListener('mousemove', onMouseMove);
 			document.addEventListener('mouseup', onMouseUp);
@@ -360,17 +437,17 @@ class Chart {
 				) {
 					return;
 				}
-				const maxWidth = this.width - otherBlock.offsetWidth - MIN_VISIBLE_AREA;
+				const maxWidth = that.areaContainer.offsetWidth - otherBlock.offsetWidth - MIN_VISIBLE_AREA;
 				let resultWidth = left
 					? container.offsetWidth + event.movementX
 					: container.offsetWidth - event.movementX;
-
 				if (resultWidth > maxWidth) {
 					resultWidth = maxWidth;
 				} else if (resultWidth < DRAG_ITEM_WIDTH) {
 					resultWidth = DRAG_ITEM_WIDTH;
 				}
 				container.style.width = resultWidth + "px";
+				that.applyScales();
 			}
 		};
 

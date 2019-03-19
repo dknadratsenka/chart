@@ -37,7 +37,10 @@ class Chart {
 		this.DRAG_ITEM_WIDTH = 5;
 		this.leftBlock;
 		this.rightBlock;
-		this.xValues = this.parseXValues(data);
+		this.xValues = [];
+
+		this.parseXValues(data);
+		this.parseLineColumns(data);
 	}
 
 	init() {
@@ -48,10 +51,45 @@ class Chart {
 		}
 	}
 
+	parseLineColumns(data) {
+		const lineColumns = data.columns.filter(item => data.types[item[0]] === Chart.TYPE.LINE);
+
+		this.maxY = this.findMax(lineColumns);
+		this.scaleY = this.height / this.maxY;
+
+		for (let i = 0; i < lineColumns.length; i++) {
+			const columns = lineColumns[i];
+			const key = columns.splice(0, 1);
+			const color = this.colors[key];
+			const name = this.names[key];
+			const lineCanvas = new LineCanvas(
+				this,
+				columns,
+				color,
+				name,
+				this.textPadding,
+				this.maxY
+			);
+			this.lines.push(lineCanvas);
+
+
+			const areaLineCanvas = new LineCanvas(
+				this,
+				columns,
+				color,
+				name,
+				0,
+				this.maxY
+			);
+			this.areaLines.push(areaLineCanvas)
+		}
+	}
+
 	parseXValues(data) {
 		const xValues = data.columns.filter(item => this.types[item[0]] === Chart.TYPE.X)[0];
 		xValues.splice(0, 1);
-		return xValues;
+		this.scaleX = this.width / (xValues.length - 1);
+		this.xValues = xValues;
 	}
 
 	onDomReady() {
@@ -157,46 +195,16 @@ class Chart {
 	}
 
 	createCanvases() {
-		const lineColumns = this.columns.filter(item => this.types[item[0]] === Chart.TYPE.LINE);
-		this.maxY = this.findMax(lineColumns);
-		this.scaleY = this.height / this.maxY;
-
-		this.scaleX = this.width / (this.xValues.length - 1);
-
-		for (let i = 0; i < lineColumns.length; i++) {
+		for (let i = 0; i < this.lines.length; i++) {
 			const canvas = this.createCanvas(this.createId(i), this.container.offsetHeight, this.width, true);
-			const columns = lineColumns[i];
-			const key = columns.splice(0, 1);
-			const color = this.colors[key];
-			const name = this.names[key];
-			const lineCanvas = new LineCanvas(
-				this,
-				canvas,
-				columns,
-				color,
-				name,
-				this.height,
-				this.textPadding,
-				this.scaleX,
-				this.maxY
-			);
-			this.lines.push(lineCanvas);
+			this.lines[i].canvas = canvas;
 			this.container.appendChild(canvas);
+		}
 
+		for (let i = 0; i < this.areaLines.length; i++) {
 			const areaCanvas = this.createCanvas(this.createId("area-canvas-" + i), this.areaContainer.offsetHeight, this.width, true);
-			const areaLineCanvas = new LineCanvas(
-				this,
-				areaCanvas,
-				columns,
-				color,
-				name,
-				areaCanvas.height,
-				0,
-				this.scaleX,
-				this.maxY
-			);
+			this.areaLines[i].canvas = areaCanvas;
 			this.areaContainer.appendChild(areaCanvas);
-			this.areaLines.push(areaLineCanvas)
 		}
 
 		const axisCanvas = this.createCanvas(this.createId('x'), this.container.offsetHeight, this.width);
@@ -286,6 +294,8 @@ class Chart {
 			pow = str.length - 1;
 		} else if (str.length > 3) {
 			pow = str.length - 2;
+		} else {
+			return Math.ceil(d);
 		}
 		return (Math.ceil(d / Math.pow(10, pow)) * Math.pow(10, pow));
 	}
@@ -459,7 +469,7 @@ class Chart {
 	findMax(arrays) {
 		const arr = [].concat.apply([], arrays)
 		let max = null;
-		for (let i = 1; i < arr.length; i++) {
+		for (let i = 0; i < arr.length; i++) {
 			var item = arr[i];
 			if (typeof item === "number" && (item > max || !max)) max = item;
 		}

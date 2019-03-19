@@ -1,13 +1,12 @@
 class LineCanvas {
-	constructor(chart, canvas, columns, color, name, height, offsetY, scaleX, maxY) {
+	constructor(chart, columns, color, name, offsetY, maxY, canvas) {
 		this.chart = chart;
 		this.canvas = canvas;
 		this.columns = columns;
 		this.color = color;
 		this.name = name;
-		this.height = height;
 		this.offsetY = offsetY;
-		this.scaleX = scaleX;
+		this.scaleX;
 		this.columnsToDraw = columns;
 		this.maxY = maxY;
 	}
@@ -18,15 +17,16 @@ class LineCanvas {
 	}
 
 	draw() {
+		const chartHeight = Math.round(this.canvas.height - this.offsetY * 2);
 		const context = this.canvas.getContext('2d');
-		const scaleY = this.height / this.maxY;
+		const scaleY = chartHeight / this.maxY;
 		context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		context.beginPath();
 		context.strokeStyle = this.color;
 		context.moveTo(0, this.offsetY + scaleY * this.columnsToDraw[0]);
 		for (let j = 0; j < this.columnsToDraw.length; j++) {
-			console.log(this.name, "x: " + this.scaleX * j, "j: " + j);
-			context.lineTo(this.scaleX * j, this.offsetY + scaleY * this.columnsToDraw[j]);
+			const scaleX = this.scaleX || this.chart.scaleX;
+			context.lineTo(scaleX * j, this.offsetY + scaleY * this.columnsToDraw[j]);
 		}
 		context.stroke();
 	}
@@ -45,10 +45,12 @@ class LineCanvas {
 	}
 
 	getClosestCoordsByX(coordX) {
-		const scaleY = this.height / this.maxY;
-		const j = Math.round(coordX / this.scaleX);
+		const scaleX = this.scaleX || this.chart.scaleX;
+		const chartHeight = Math.round(this.canvas.height - this.offsetY * 2);
+		const scaleY = chartHeight / this.maxY;
+		const j = Math.round(coordX / scaleX);
 		const y = Math.round(this.offsetY + scaleY * this.columnsToDraw[j]);
-		const x = this.scaleX * j;
+		const x = scaleX * j;
 		if (isNaN(y) || isNaN(x)) {
 			return null;
 		}

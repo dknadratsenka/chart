@@ -11,7 +11,7 @@ class Chart {
 	 */
 	constructor(id, data, width, height) {
 		this.maxAxisYColumns = 6;
-		this.maxAxisXColumns = 6;
+		this.maxAxisColumns = 6;
 		this.textPadding = 15;
 		this.id = id;
 		this.container = null;
@@ -31,7 +31,7 @@ class Chart {
 
 		this.lines = [];
 		this.areaLines = [];
-		this.axisCanvas;
+		this.axisCanvasX;
 
 		this.selectedCoordX;
 		this.DRAG_ITEM_WIDTH = 5;
@@ -112,10 +112,7 @@ class Chart {
 		mainCanvasContainer.style.width = "100%";
 		mainCanvasContainer.style.height = mainCanvasHeight + "px";
 
-		this.verticalCanvas = this.createCanvas(this.createId('vertical-info'), mainCanvasHeight, this.width, true);
 
-
-		mainCanvasContainer.appendChild(this.verticalCanvas);
 
 		container.appendChild(mainCanvasContainer);
 		container.appendChild(areaContainer);
@@ -195,6 +192,7 @@ class Chart {
 	}
 
 	createCanvases() {
+
 		for (let i = 0; i < this.lines.length; i++) {
 			const canvas = this.createCanvas(this.createId(i), this.container.offsetHeight, this.width, true);
 			this.lines[i].canvas = canvas;
@@ -207,20 +205,30 @@ class Chart {
 			this.areaContainer.appendChild(areaCanvas);
 		}
 
-		const axisCanvas = this.createCanvas(this.createId('x'), this.container.offsetHeight, this.width);
-		this.container.appendChild(axisCanvas);
+		this.verticalCanvas = this.createCanvas(this.createId('vertical-info'), this.container.offsetHeight - this.textPadding, this.width, true);
+		this.container.appendChild(this.verticalCanvas);
 
-		const context = axisCanvas.getContext('2d');
+		this.axisCanvasX = this.createAxisCanvas('x', this.container.offsetHeight);
+		this.container.appendChild(this.axisCanvasX);
+
+		this.axisCanvasY = this.createAxisCanvas('x', this.container.offsetHeight - this.textPadding);
+		this.container.appendChild(this.axisCanvasY);
+	}
+
+	createAxisCanvas(idPostfix, height) {
+		const canvas = this.createCanvas(this.createId(idPostfix), height, this.width);
+		const context = canvas.getContext('2d');
 		context.strokeStyle = "gray";
 		context.lineWidth = 0.3;
 		context.font = "10px gray";
-		this.axisCanvas = axisCanvas;
+		return canvas;
 	}
 
 	draw() {
 		this.drawLines();
 		this.drawAreaLines();
-		this.drawAxis();
+		this.drawAxisX();
+		this.drawAxisY();
 	}
 
 	drawLines() {
@@ -248,7 +256,7 @@ class Chart {
 		return newColumns;
 	}
 
-	drawAxis() {
+	drawAxisX() {
 		const leftIndex = this.getLeftBoundaryIndex();
 		const rightIndex = this.getRightBoundaryIndex();
 		const xColumn = this.applyBoundaries(this.xValues, leftIndex, rightIndex);
@@ -256,18 +264,18 @@ class Chart {
 
 		this.maxX = new Date(this.findMax(xColumn));
 		this.minX = new Date(this.findMin(xColumn));
-		const stepX = (this.maxX - this.minX) / this.maxAxisXColumns;
-		const stepCoordX = this.width / this.maxAxisXColumns;
+		const stepX = (this.maxX - this.minX) / this.maxAxisColumns;
+		const stepCoordX = this.width / this.maxAxisColumns;
 		let coordValueX = stepCoordX;
 
-		const context = this.axisCanvas.getContext('2d');
+		const context = this.axisCanvasX.getContext('2d');
 		context.beginPath();
 		context.clearRect(0, 0, this.width, this.container.offsetHeight);
 
 		let valueY = 0;
 		let valueX = this.minX;
 		let stepY = this.round(this.maxY / this.maxAxisYColumns);
-		for (let i = 0; i < this.maxAxisXColumns; i++) {
+		for (let i = 0; i < this.maxAxisColumns; i++) {
 			const coordY = this.height + this.textPadding - valueY * scaleY;
 			context.moveTo(0, coordY);
 			context.lineTo(this.width, coordY);
@@ -280,6 +288,15 @@ class Chart {
 			coordValueX += stepCoordX;
 		}
 		context.stroke();
+	}
+
+	drawAxisY() {
+		const context = this.axisCanvasY.getContext('2d');
+		context.beginPath();
+		context.clearRect(0, 0, this.width, this.container.offsetHeight);
+		for (let i = 0; i < this.maxAxisColumns; i++) {
+
+		}
 	}
 
 	fromDateToMMDD(date) {
@@ -423,7 +440,8 @@ class Chart {
 	applyScales() {
 		this.updateScales();
 		this.drawLines();
-		this.drawAxis();
+		this.drawAxisX();
+		this.drawAxisY();
 	}
 
 	addResizableBlockEvent(element, container, left, otherBlock) {

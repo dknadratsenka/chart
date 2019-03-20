@@ -55,7 +55,6 @@ class Chart {
 		const lineColumns = data.columns.filter(item => data.types[item[0]] === Chart.TYPE.LINE);
 
 		this.maxY = this.findMax(lineColumns);
-		this.scaleY = this.height / this.maxY;
 
 		for (let i = 0; i < lineColumns.length; i++) {
 			const columns = lineColumns[i];
@@ -188,7 +187,6 @@ class Chart {
 		});
 		this.maxY = this.findMax(visibleValuesY);
 		this.lines.forEach(line => line.maxY = this.maxY);
-		this.scaleY = this.height / this.maxY;
 	}
 
 	createCanvases() {
@@ -260,7 +258,6 @@ class Chart {
 		const leftIndex = this.getLeftBoundaryIndex();
 		const rightIndex = this.getRightBoundaryIndex();
 		const xColumn = this.applyBoundaries(this.xValues, leftIndex, rightIndex);
-		const scaleY = this.height / this.maxY;
 
 		this.maxX = new Date(this.findMax(xColumn));
 		this.minX = new Date(this.findMin(xColumn));
@@ -276,13 +273,7 @@ class Chart {
 		let valueX = this.minX;
 		let stepY = this.round(this.maxY / this.maxAxisYColumns);
 		for (let i = 0; i < this.maxAxisColumns; i++) {
-			const coordY = this.height + this.textPadding - valueY * scaleY;
-			context.moveTo(0, coordY);
-			context.lineTo(this.width, coordY);
-			context.fillText(valueY, 0, coordY - 5);
 			context.fillText(this.fromDateToMMDD(valueX), coordValueX, this.height + this.textPadding * 2);
-
-
 			valueX = new Date(valueX.getTime() + stepX);
 			valueY += stepY;
 			coordValueX += stepCoordX;
@@ -294,9 +285,21 @@ class Chart {
 		const context = this.axisCanvasY.getContext('2d');
 		context.beginPath();
 		context.clearRect(0, 0, this.width, this.container.offsetHeight);
-		for (let i = 0; i < this.maxAxisColumns; i++) {
+		const newScaleY = this.height / this.maxY;
+		if (this.scaleY) {
 
 		}
+		this.scaleY = newScaleY;
+		let valueY = 0;
+		let stepY = this.round(this.maxY / this.maxAxisYColumns);
+		for (let i = 0; i < this.maxAxisColumns; i++) {
+			const coordY = this.height + this.textPadding - valueY * this.scaleY;
+			context.moveTo(0, coordY);
+			context.lineTo(this.width, coordY);
+			context.fillText(valueY, 0, coordY - 5);
+			valueY += stepY;
+		}
+		context.stroke();
 	}
 
 	fromDateToMMDD(date) {

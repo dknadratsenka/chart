@@ -50,6 +50,7 @@ body > div {
     background: white;
     text-align: center;
     z-index: 15;
+    opacity: 0.9;
 }
 
 .tip-container-title {

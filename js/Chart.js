@@ -229,12 +229,14 @@ class Chart {
 
 	drawVerticalCanvas(coords) {
 		const context = this.verticalCanvas.getContext('2d');
-		context.clearRect(0, 0, this.verticalCanvas.width, this.verticalCanvas.height);
 		context.beginPath();
-		context.strokeStyle = "#c5c5c5";
-		context.lineWidth = 0.3;
-		context.moveTo(coords.x, 0);
-		context.lineTo(coords.x, this.verticalCanvas.height - this.textPadding);
+		context.clearRect(0, 0, this.verticalCanvas.width, this.verticalCanvas.height);
+		if (coords) {
+			context.strokeStyle = "#c5c5c5";
+			context.lineWidth = 0.3;
+			context.moveTo(coords.x, 0);
+			context.lineTo(coords.x, this.verticalCanvas.height - this.textPadding);
+		}
 		context.closePath();
 		context.stroke();
 	}
@@ -275,6 +277,8 @@ class Chart {
 
 	updateScales() {
 		this.selectedCoordX = 0;
+		this.drawVerticalCanvas();
+		this.drawTipContainer();
 
 		const maxY = this.findMaxY();
 		const maxYArea = this.findMaxYArea();

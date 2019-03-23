@@ -1,6 +1,7 @@
 class LineCanvas {
-	constructor(chart, columns, color, name, offsetY, maxY, canvas) {
+	constructor(chart, key, columns, color, name, offsetY, maxY, canvas) {
 		this.chart = chart;
+		this.key = key;
 		this.canvas = canvas;
 		this.columns = columns;
 		this.color = color;
@@ -37,6 +38,7 @@ class LineCanvas {
 		context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 		context.beginPath();
 		context.strokeStyle = this.color;
+		context.lineWidth = 2;
 		context.moveTo(0, this.offsetY + scaleY * this.columnsToDraw[0]);
 		for (let j = 0; j < this.columnsToDraw.length; j++) {
 			const scaleX = this.scaleX || this.chart.scaleX;

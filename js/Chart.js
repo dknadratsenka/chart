@@ -65,6 +65,7 @@ class Chart {
 			const name = this.names[key];
 			const lineCanvas = new LineCanvas(
 				this,
+				key,
 				columns,
 				color,
 				name,
@@ -76,6 +77,7 @@ class Chart {
 
 			const areaLineCanvas = new LineCanvas(
 				this,
+				key,
 				columns,
 				color,
 				name,
@@ -121,7 +123,7 @@ class Chart {
 		this.areaContainer = areaContainer;
 		mainCanvasContainer.addEventListener("mousemove", this.onMouseMove.bind(this));
 		this.createCanvases();
-		this.updateScales();
+		this.updateScales(this.findMaxY());
 		this.draw();
 	}
 
@@ -177,19 +179,24 @@ class Chart {
 		return Math.round(index);
 	}
 
-	updateScales() {
-		this.selectedCoordX = 0;
+	findMaxY() {
 		const leftIndex = this.getLeftBoundaryIndex();
 		const rightIndex = this.getRightBoundaryIndex();
 
 		const visibleValuesY = [];
 		this.lines.forEach(line => {
-			line.recalculateBoundaries(leftIndex, rightIndex);
-			visibleValuesY.push(line.columnsToDraw);
+			if (line.active) {
+				line.recalculateBoundaries(leftIndex, rightIndex);
+				visibleValuesY.push(line.columnsToDraw);
+			}
 		});
+		return this.findMax(visibleValuesY);
+	}
+
+	updateScales(maxY) {
+		this.selectedCoordX = 0;
 		this.lastMaxY = this.maxY;
-		this.maxY = this.findMax(visibleValuesY);
-		this.lines.forEach(line => line.maxY = this.maxY);
+		this.maxY = maxY;
 	}
 
 	createCanvasContainer(height) {
@@ -222,6 +229,23 @@ class Chart {
 		line.switcher = span;
 		span.addEventListener("click", (event) => {
 			line.toggle();
+			const newMaxY = this.findMaxY();
+			let className = "";
+			if (this.isStepChanged(this.maxY, newMaxY)) {
+				const stepIncreased = this.isStepIncreased(this.maxY, newMaxY);
+				className = line.active ? this.getFadeInClassName(stepIncreased) : this.getFadeOutClassName(stepIncreased);
+
+			} else {
+				className = line.active ? "run-animation-show" : "run-animation-hide";
+			}
+			const chartCanvas = line.canvas;
+			const areaCanvas = this.findAreaLineByKey(line.key).canvas;
+			chartCanvas.style.opacity = line.active ? 0 : 1;
+			areaCanvas.style.opacity = line.active ? 0 : 1;
+			this.fadeCanvas(areaCanvas, className);
+			this.fadeCanvas(line.canvas, className);
+			this.drawFromLastToNewMaxY(this.maxY, newMaxY);
+
 		});
 		const name = document.createElement("span");
 		name.innerHTML = line.name;
@@ -340,7 +364,7 @@ class Chart {
 		context.stroke();
 	}
 
-	fadeOutOldCanvasY(canvas, clazz) {
+	fadeCanvas(canvas, clazz, deleteOnEnd) {
 		const classes = [];
 		for (let i = 0; i < canvas.classList.length; i++) {
 			const className = canvas.classList[i];
@@ -348,16 +372,18 @@ class Chart {
 				classes.push(className);
 			}
 		}
+
 		classes.forEach((className) => {
 			canvas.classList.remove(className);
 		});
-
 		setTimeout(() => {
 			canvas.classList.add(clazz);
 		}, 0);
 
-		canvas.addEventListener("webkitAnimationEnd", onAnimationEnd);
-		canvas.addEventListener("animationend", onAnimationEnd);
+		if (deleteOnEnd) {
+			canvas.addEventListener("webkitAnimationEnd", onAnimationEnd);
+			canvas.addEventListener("animationend", onAnimationEnd);
+		}
 
 		function onAnimationEnd(event) {
 			const canvasContainer = event.target.parentNode;
@@ -370,28 +396,43 @@ class Chart {
 		}
 	}
 
+	isStepIncreased(oldMaxY, newMaxY) {
+		const newStep = this.round(newMaxY / this.maxAxisYColumns);
+		const oldStep = this.round(oldMaxY / this.maxAxisYColumns);
+
+		return newStep > oldStep;
+	}
+
+	isStepChanged(oldMaxY, newMaxY) {
+		const newStep = this.round(newMaxY / this.maxAxisYColumns);
+		const oldStep = this.round(oldMaxY / this.maxAxisYColumns);
+
+		return oldStep !== newStep;
+	}
+
+	getFadeOutClassName(isStepIncreased) {
+		return isStepIncreased ? "run-animation-mid-bot" : "run-animation-mid-top";
+	}
+
+	getFadeInClassName(isStepIncreased) {
+		return isStepIncreased ? "run-animation-top-mid" : "run-animation-bot-mid";
+	}
+
 	drawAxisY() {
-		const newStep = this.round(this.maxY / this.maxAxisYColumns);
-		const oldStep = this.round(this.lastMaxY / this.maxAxisYColumns);
+		const isStepIncreased = this.isStepIncreased(this.lastMaxY, this.maxY);
 
-		const isStepIncreased = newStep > oldStep;
-		const stepChanged = oldStep !== newStep;
-
-		let classNameNewCanvas = isStepIncreased ? "run-animation-top-mid" : "run-animation-bot-mid";
-		let classNameOldCanvas = isStepIncreased ? "run-animation-mid-bot" : "run-animation-mid-top";
-
-		if (this.scaleY !== 1 && stepChanged) {
+		if (this.scaleY !== 1 && this.isStepChanged(this.lastMaxY, this.maxY)) {
 			const oldCanvas = this.axisCanvasY;
 
 			const canvasContainerY = this.createCanvasContainer(this.container.offsetHeight - this.textPadding);
 			this.axisCanvasY = this.createCanvasAxisY();
 			canvasContainerY.appendChild(this.axisCanvasY);
-			this.axisCanvasY.classList.add(classNameNewCanvas);
+			this.axisCanvasY.classList.add(this.getFadeInClassName(isStepIncreased));
 
 			this.container.appendChild(canvasContainerY);
 
 			this._drawAxisY();
-			this.fadeOutOldCanvasY(oldCanvas, classNameOldCanvas);
+			this.fadeCanvas(oldCanvas, this.getFadeOutClassName(isStepIncreased), true);
 		} else {
 			this._drawAxisY();
 		}
@@ -540,7 +581,7 @@ class Chart {
 				}
 				leftBlock.style.width = leftBlockWidth + "px";
 				rightBlock.style.width = rightBlockWidth + "px";
-				that.applyScales();
+				that.applyScales(that.findMaxY());
 			}
 		};
 
@@ -551,11 +592,41 @@ class Chart {
 		return area;
 	}
 
-	applyScales() {
-		this.updateScales();
+	applyScales(maxY) {
+		this.updateScales(maxY);
 		this.drawLines();
 		this.drawAxisX();
 		this.drawAxisY();
+	}
+
+	drawFromLastToNewMaxY(from, to) {
+		this.stretch(from, to, Math.abs(from - to) / 50);
+
+		this.selectedCoordX = 0;
+		this.lastMaxY = from;
+		this.maxY = to;
+		this.drawAxisX();
+		this.drawAxisY(to);
+	}
+
+	stretch(current, final, step) {
+		this.updateScales(current);
+		this.lines.forEach(line => line.maxY = this.maxY);
+		this.areaLines.forEach(line => line.maxY = this.maxY);
+		this.drawLines();
+		this.drawAreaLines();
+		if (current !== final) {
+			if (Math.abs(current - final) < step) {
+				setTimeout(() => {
+					this.stretch(final, final);
+				}, 0);
+			} else {
+				const next = current < final ? current + step : current - step;
+				setTimeout(() => {
+					this.stretch(next, final, step);
+				}, 0);
+			}
+		}
 	}
 
 	addResizableBlockEvent(element, container, left, otherBlock) {
@@ -590,7 +661,7 @@ class Chart {
 					resultWidth = DRAG_ITEM_WIDTH;
 				}
 				container.style.width = resultWidth + "px";
-				that.applyScales();
+				that.applyScales(that.findMaxY());
 			}
 		};
 
@@ -606,7 +677,7 @@ class Chart {
 			var item = arr[i];
 			if (typeof item === "number" && (item > max || !max)) max = item;
 		}
-		return max;
+		return max || 0;
 	}
 
 	findMin(arrays) {
@@ -619,53 +690,7 @@ class Chart {
 		return min;
 	}
 
-
-	//
-	// sortAxisY(data) {
-	// 	const maxNum = this.maxY * 10;
-	// 	let divisor = 10;
-	//
-	// 	while (divisor < maxNum) {
-	// 		let buckets = this.create2DArray(10);
-	// 		for (let item of data) {
-	// 			buckets[Math.floor((this.toNumber(item.y) % divisor) / (divisor / 10))].push(item);
-	// 		}
-	// 		arr = [].concat.apply([], buckets);
-	// 		divisor *= 10;
-	// 	}
-	// 	return arr;
-	// }
-	//
-	// create2DArray(count) {
-	// 	const arr = [];
-	//
-	// 	for (let i = 0; i < count; i++) {
-	// 		arr[i] = [];
-	// 	}
-	//
-	// 	return arr;
-	// }
-	//
-	// toNumber(value) {
-	// 	return value - 0;
-	// }
-	//
-	// defineLimits(data) {
-	// 	let maxY, minY, maxX, minX;
-	// 	minY = maxY = this.toNumber(data[0].y);
-	// 	minX = maxX = this.toNumber(data[0].x);
-	//
-	// 	for (let i = 1; i < data.length; i++) {
-	// 		var item = data[i];
-	// 		if (this.toNumber(item.y) > maxY) maxY = item.y;
-	// 		if (this.toNumber(item.x) > maxX) maxX = item.x;
-	// 		if (this.toNumber(item.y) < minY) minY = item.y;
-	// 		if (this.toNumber(item.x) < minX) minX = item.x;
-	// 	}
-	// 	this.minY = minY;
-	// 	this.maxY = maxY;
-	// 	this.minX = minX;
-	// 	this.maxX = maxX;
-	// }
-
+	findAreaLineByKey(key) {
+		return this.areaLines.find(line => line.key === key);
+	}
 }

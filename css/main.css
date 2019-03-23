@@ -40,32 +40,39 @@ body > div {
 }
 
 .run-animation-top-mid {
-    animation: top-mid 200ms ease forwards;
-    -webkit-animation: top-mid 200ms ease forwards;
+    animation: top-mid 300ms ease forwards;
+    -webkit-animation: top-mid 300ms ease forwards;
 }
 
 .run-animation-mid-bot {
-    animation: mid-bot 200ms ease forwards;
-    -webkit-animation: mid-bot 200ms ease forwards;
+    animation: mid-bot 300ms ease forwards;
+    -webkit-animation: mid-bot 300ms ease forwards;
 }
 
 .run-animation-mid-top {
-    animation: mid-top 200ms ease forwards;
-    -webkit-animation: mid-top 200ms ease forwards;
+    animation: mid-top 300ms ease forwards;
+    -webkit-animation: mid-top 300ms ease forwards;
 }
 
 .run-animation-bot-mid {
-    animation: bot-mid 200ms ease forwards;
-    -webkit-animation: bot-mid 200ms ease forwards;
+    animation: bot-mid 300ms ease forwards;
+    -webkit-animation: bot-mid 300ms ease forwards;
+}
+
+.run-animation-hide {
+    animation: hide 300ms ease forwards;
+    -webkit-animation: hide 300ms ease forwards;
+}
+
+.run-animation-show {
+    animation: show 300ms ease forwards;
+    -webkit-animation: show 300ms ease forwards;
 }
 
 @keyframes mid-top {
     from {
         top: 0;
         opacity: 1;
-    }
-    70% {
-        opacity: 0.2;
     }
     to {
         top: -100px;
@@ -78,9 +85,7 @@ body > div {
         top: -100px;
         opacity: 0;
     }
-    70% {
-        opacity: 0.2;
-    }
+
     to {
         top: 0;
         opacity: 1;
@@ -92,9 +97,7 @@ body > div {
         top: 100px;
         opacity: 0;
     }
-    70% {
-        opacity: 0.2;
-    }
+
     to {
         top: 0;
         opacity: 1;
@@ -106,11 +109,26 @@ body > div {
         top: 0;
         opacity: 1;
     }
-    70% {
-        opacity: 0.2;
-    }
     to {
         top: 100px;
         opacity: 0;
+    }
+}
+
+@keyframes hide {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes show {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }

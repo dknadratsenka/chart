@@ -9,6 +9,20 @@ class LineCanvas {
 		this.scaleX;
 		this.columnsToDraw = columns;
 		this.maxY = maxY;
+		this.active = true;
+		this.switcher = null;
+	}
+
+	toggle() {
+		const state = !this.active;
+		this.active = state;
+		if (state) {
+			this.switcher.style.background = this.color;
+			this.switcher.style.border = "none";
+		} else {
+			this.switcher.style.background = "white";
+			this.switcher.style.border = "1px solid " + this.color;
+		}
 	}
 
 	recalculateBoundaries(leftIndex, rightIndex) {

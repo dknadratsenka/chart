@@ -7,6 +7,38 @@ body > div {
 	margin: 50px 50px;
 }
 
+.line-switcher {
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
+}
+
+.line-switcher-off {
+    background: white;
+}
+
+.line-switcher-main-container {
+    display: flex;
+}
+
+.line-switcher-container {
+    display: flex;
+    margin: 5px;
+    border: 1px solid #bdbbbb;
+    border-radius: 20px;
+    padding: 5px 7px;
+}
+
 .run-animation-top-mid {
     animation: top-mid 200ms ease forwards;
     -webkit-animation: top-mid 200ms ease forwards;

@@ -27,6 +27,7 @@ class Chart {
 		this.fullWidth = width;
 		this.fullHeight = height;
 		this.height;
+		this.switcherContainerHeight = 50;
 		this.scaleY = 1;
 		this.verticalCanvas = null;
 
@@ -99,8 +100,8 @@ class Chart {
 		container.style.width = this.fullWidth + "px";
 
 		const areaCanvasHeight = Math.round(this.fullHeight / 6);
-		const mainCanvasHeight = this.fullHeight - areaCanvasHeight;
-		this.height = this.fullHeight - this.textPadding * 2 - areaCanvasHeight;
+		const mainCanvasHeight = this.fullHeight - areaCanvasHeight - this.switcherContainerHeight;
+		this.height = this.fullHeight - this.textPadding * 2 - areaCanvasHeight - this.switcherContainerHeight;
 
 		const MARGIN_TOP = 10;
 		const areaContainer = this.createControlArea(areaCanvasHeight - MARGIN_TOP);
@@ -115,6 +116,7 @@ class Chart {
 
 		container.appendChild(mainCanvasContainer);
 		container.appendChild(areaContainer);
+		container.appendChild(this.createSwitchersMainContainer());
 
 		this.areaContainer = areaContainer;
 		mainCanvasContainer.addEventListener("mousemove", this.onMouseMove.bind(this));
@@ -198,8 +200,42 @@ class Chart {
 		return div;
 	}
 
-	createCanvases() {
+	createSwitchersMainContainer() {
+		const switcherContainer = document.createElement("div");
+		switcherContainer.style.height = this.switcherContainerHeight + "px";
+		switcherContainer.classList.add("line-switcher-main-container");
+		for (let i = 0; i < this.lines.length; i++) {
+			switcherContainer.appendChild(this.createLineSwitcher(this.lines[i]));
+		}
+		return switcherContainer;
+	}
 
+	/**
+	 * @param {LineCanvas} line
+	 */
+	createLineSwitcher(line) {
+		const code = "&#10003";
+		const span = document.createElement("span");
+		span.innerHTML = code;
+		span.style.background = line.color;
+		span.classList.add("line-switcher");
+		line.switcher = span;
+		span.addEventListener("click", (event) => {
+			line.toggle();
+		});
+		const name = document.createElement("span");
+		name.innerHTML = line.name;
+		name.style.padding = "5px 10px";
+
+		const container = document.createElement("span");
+		container.classList.add("line-switcher-container");
+		container.appendChild(span);
+		container.appendChild(name);
+
+		return container;
+	}
+
+	createCanvases() {
 		for (let i = 0; i < this.lines.length; i++) {
 			const canvasContainer = this.createCanvasContainer(this.container.offsetHeight);
 			const canvas = this.createCanvas(this.createId(i), this.container.offsetHeight, this.width, true);

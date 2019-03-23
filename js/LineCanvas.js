@@ -12,6 +12,7 @@ class LineCanvas {
 		this.maxY = maxY;
 		this.active = true;
 		this.switcher = null;
+		this.selectedCoords = null;
 	}
 
 	toggle() {
@@ -57,7 +58,7 @@ class LineCanvas {
 			context.fill();
 			context.stroke();
 		}
-		return coords;
+		this.selectedCoords = coords;
 	}
 
 	getClosestCoordsByX() {

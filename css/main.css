@@ -4,7 +4,7 @@
 }
 
 body > div {
-	margin: 50px 50px;
+    margin: 50px 50px;
 }
 
 .line-switcher {
@@ -37,6 +37,24 @@ body > div {
     border: 1px solid #bdbbbb;
     border-radius: 20px;
     padding: 5px 7px;
+}
+
+.tip-container {
+    position: relative;
+    height: 75px;
+    width: auto;
+    display: none;
+    border-radius: 7px;
+    border: 1px solid #c5c5c5;
+    box-sizing: border-box;
+    background: white;
+    text-align: center;
+    z-index: 15;
+}
+
+.tip-container-title {
+    display: inline-block;
+    margin: 5px;
 }
 
 .run-animation-top-mid {

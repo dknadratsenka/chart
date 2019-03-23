@@ -122,7 +122,6 @@ class Chart {
 		container.appendChild(this.createSwitchersMainContainer());
 
 		this.areaContainer = areaContainer;
-		mainCanvasContainer.addEventListener("mousemove", this.onMouseMove.bind(this));
 		this.createCanvases();
 		this.updateScales();
 		this.draw();
@@ -156,18 +155,88 @@ class Chart {
 
 	onMouseMove(event) {
 		event.preventDefault();
-
 		const coords = this.findRelativeMouseCoords(event);
+		this.selectedCoordX = coords.x;
+		this.drawLines();
+		this.drawVerticalCanvas(coords);
+		this.drawTipContainer();
+
+	}
+
+	drawTipContainer() {
+		while (this.tipContainer.firstChild) {
+			this.tipContainer.removeChild(this.tipContainer.firstChild);
+		}
+		if (this.selectedCoordX) {
+			this.tipContainer.style.display = "block";
+			this.tipContainer.style.left = (this.selectedCoordX - 15) + "px";
+
+			const valuesContainer = document.createElement("div");
+			valuesContainer.style.display = "flex";
+			valuesContainer.style.justifyContent = "space-around";
+			valuesContainer.style.flexDirection = "row";
+
+			let xIndex = null;
+			this.lines.forEach(line => {
+				if (line.selectedCoords && line.active) {
+					xIndex = line.selectedCoords.indexX;
+					valuesContainer.appendChild(this.createTipSelectedLineValue(line.selectedCoords.valueY, line.color, line.name));
+				}
+			});
+			if (typeof xIndex === "number") {
+				this.tipContainer.appendChild(this.createTipTitle(xIndex));
+				this.tipContainer.appendChild(valuesContainer);
+			} else {
+				this.tipContainer.style.display = "none";
+			}
+		} else {
+			this.tipContainer.style.display = "none";
+		}
+	}
+
+	createTipTitle(xIndex) {
+		const span = document.createElement("span");
+		span.classList.add("tip-container-title");
+		span.innerHTML = this.formatDateForTip(this.currentXValues[xIndex]);
+		return span;
+	}
+
+	createTipSelectedLineValue(value, color, name) {
+		const div = document.createElement("div");
+		div.style.display = "flex";
+		div.style.justifyContent = "center";
+		div.style.flexDirection = "column";
+		div.style.margin = "5px";
+
+		const valueSpan = document.createElement("span");
+		valueSpan.style.color = color;
+		valueSpan.innerHTML = value;
+
+		const nameSpan = document.createElement("span");
+		nameSpan.style.color = color;
+		nameSpan.innerHTML = name;
+
+		div.appendChild(valueSpan);
+		div.appendChild(nameSpan);
+		return div;
+	}
+
+	formatDateForTip(timeInMillis) {
+		const dateStr = new Date(timeInMillis).toDateString();
+		const parts = dateStr.split(" ");
+		return parts[0] + ", " + parts[1] + " " + parts[2];
+	}
+
+	drawVerticalCanvas(coords) {
 		const context = this.verticalCanvas.getContext('2d');
 		context.clearRect(0, 0, this.verticalCanvas.width, this.verticalCanvas.height);
 		context.beginPath();
-		context.strokeStyle = "gray";
+		context.strokeStyle = "#c5c5c5";
 		context.lineWidth = 0.3;
 		context.moveTo(coords.x, 0);
 		context.lineTo(coords.x, this.verticalCanvas.height - this.textPadding);
+		context.closePath();
 		context.stroke();
-		this.selectedCoordX = coords.x;
-		this.drawLines();
 	}
 
 	getLeftBoundaryIndex() {
@@ -216,18 +285,21 @@ class Chart {
 		this.maxYArea = maxYArea;
 	}
 
+	createTipContainer() {
+		const tipParent = document.createElement("div");
+		tipParent.style.position = "absolute";
+		const div = document.createElement("div");
+		div.classList.add("tip-container");
+
+		tipParent.appendChild(div);
+		return tipParent;
+	}
+
 	createCanvasContainer(height) {
 		const div = document.createElement("div");
 		div.style.position = "absolute";
 		div.style.overflow = "hidden";
 		div.style.height = height + "px";
-		return div;
-	}
-
-	createSelectedCoordsCanvas() {
-		const div = document.createElement("div");
-		div.style.position = "absolute";
-		div.style.overflow = "hidden";
 		return div;
 	}
 
@@ -293,7 +365,7 @@ class Chart {
 	createCanvases() {
 		for (let i = 0; i < this.lines.length; i++) {
 			const canvasContainer = this.createCanvasContainer(this.container.offsetHeight);
-			const canvas = this.createCanvas(this.createId(i), this.container.offsetHeight, this.width, true);
+			const canvas = this.createCanvas(this.container.offsetHeight, this.width, true);
 			this.lines[i].canvas = canvas;
 			canvasContainer.appendChild(canvas);
 			this.container.appendChild(canvasContainer);
@@ -301,15 +373,18 @@ class Chart {
 
 		for (let i = 0; i < this.areaLines.length; i++) {
 			const canvasContainer = this.createCanvasContainer(this.areaContainer.offsetHeight);
-			const areaCanvas = this.createCanvas(this.createId("area-canvas-" + i), this.areaContainer.offsetHeight, this.width, true);
+			const areaCanvas = this.createCanvas(this.areaContainer.offsetHeight, this.width, true);
 			this.areaLines[i].canvas = areaCanvas;
 			canvasContainer.appendChild(areaCanvas);
 			this.areaContainer.appendChild(canvasContainer);
 		}
 
 		const canvasContainer = this.createCanvasContainer(this.container.offsetHeight - this.textPadding);
-		this.verticalCanvas = this.createCanvas(this.createId('vertical-info'), this.container.offsetHeight - this.textPadding, this.width, true);
+		this.verticalCanvas = this.createCanvas(this.container.offsetHeight - this.textPadding, this.width);
 		canvasContainer.appendChild(this.verticalCanvas);
+		this.verticalCanvas.style.zIndex = 10;
+		this.verticalCanvas.addEventListener("mousemove", this.onMouseMove.bind(this));
+
 		this.container.appendChild(canvasContainer);
 
 		const canvasContainerX = this.createCanvasContainer(this.container.offsetHeight);
@@ -322,7 +397,10 @@ class Chart {
 		canvasContainerY.appendChild(this.axisCanvasY);
 		this.container.appendChild(canvasContainerY);
 
-		this.selectedCoordsCanvas = this.createSelectedCoordsCanvas();
+		const tipContainer = this.createTipContainer();
+		this.tipContainer = tipContainer.firstChild;
+
+		this.container.appendChild(tipContainer);
 	}
 
 	createCanvasAxisY() {
@@ -330,11 +408,11 @@ class Chart {
 	}
 
 	createAxisCanvas(idPostfix, height) {
-		const canvas = this.createCanvas(this.createId(idPostfix), height, this.width);
+		const canvas = this.createCanvas(height, this.width);
 		const context = canvas.getContext('2d');
-		context.strokeStyle = "gray";
+		context.strokeStyle = "#c5c5c5";
 		context.lineWidth = 0.3;
-		context.font = "10px gray";
+		context.font = "10px #c5c5c5";
 		return canvas;
 	}
 
@@ -346,23 +424,11 @@ class Chart {
 	}
 
 	drawLines() {
-		const coords = {};
 		for (let i = 0; i < this.lines.length; i++) {
 			const line = this.lines[i];
 			line.draw();
-			const lineCoords = line.drawArcs();
-			coords[line.key] = lineCoords;
+			line.drawArcs();
 		}
-		this.drawSelectedCoords();
-	}
-
-	drawSelectedCoords() {
-		// const context = this.selectedCoordsCanvas.getContext('2d');
-		// const x = this.selectedCoordX;
-		// for (let i = 0; i < this.lines.length; i++) {
-		// 	const line = this.lines[i];
-		// 	line.coords
-		// }
 	}
 
 	drawAreaLines() {
@@ -385,10 +451,10 @@ class Chart {
 	drawAxisX() {
 		const leftIndex = this.getLeftBoundaryIndex();
 		const rightIndex = this.getRightBoundaryIndex();
-		const xColumn = this.applyBoundaries(this.xValues, leftIndex, rightIndex);
+		this.currentXValues = this.applyBoundaries(this.xValues, leftIndex, rightIndex);
 
-		this.maxX = new Date(this.findMax(xColumn));
-		this.minX = new Date(this.findMin(xColumn));
+		this.maxX = new Date(this.findMax(this.currentXValues));
+		this.minX = new Date(this.findMin(this.currentXValues));
 		const stepX = (this.maxX - this.minX) / this.maxAxisColumns;
 		const stepCoordX = this.width / this.maxAxisColumns;
 		let coordValueX = stepCoordX;
@@ -519,11 +585,7 @@ class Chart {
 		return (Math.ceil(d / Math.pow(10, pow)) * Math.pow(10, pow));
 	}
 
-	createId(id) {
-		return this.id + "-canvas-" + id;
-	}
-
-	createCanvas(id, height, width, isTranslated) {
+	createCanvas(height, width, isTranslated) {
 		const canvas = document.createElement('canvas');
 		canvas.width = width;
 		canvas.height = height;

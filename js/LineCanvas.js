@@ -49,8 +49,7 @@ class LineCanvas {
 
 	drawArcs() {
 		const context = this.canvas.getContext('2d');
-		const x = this.chart.selectedCoordX;
-		const coords = this.getClosestCoordsByX(x);
+		const coords = this.getClosestCoordsByX();
 		if (coords) {
 			context.beginPath();
 			context.fillStyle = "white";
@@ -58,18 +57,21 @@ class LineCanvas {
 			context.fill();
 			context.stroke();
 		}
+		return coords;
 	}
 
-	getClosestCoordsByX(coordX) {
+	getClosestCoordsByX() {
+		const coordX = this.chart.selectedCoordX;
 		const scaleX = this.scaleX || this.chart.scaleX;
+		const index = Math.round(coordX / scaleX);
+
 		const chartHeight = Math.round(this.canvas.height - this.offsetY * 2);
 		const scaleY = chartHeight / this.maxY;
-		const j = Math.round(coordX / scaleX);
-		const y = Math.round(this.offsetY + scaleY * this.columnsToDraw[j]);
-		const x = scaleX * j;
+		const y = Math.round(this.offsetY + scaleY * this.columnsToDraw[index]);
+		const x = scaleX * index;
 		if (isNaN(y) || isNaN(x)) {
 			return null;
 		}
-		return {y: y, x: x};
+		return {y: y, x: x, valueY: this.columnsToDraw[index], indexX: index};
 	}
 }

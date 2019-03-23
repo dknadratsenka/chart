@@ -21,6 +21,7 @@ class Chart {
 		this.colors = data.colors;
 		this.maxY = null;
 		this.lastMaxY = null;
+		this.maxYArea = null;
 		this.maxX = null;
 		this.minX = null;
 		this.width = width;
@@ -30,7 +31,6 @@ class Chart {
 		this.switcherContainerHeight = 50;
 		this.scaleY = 1;
 		this.verticalCanvas = null;
-
 		this.lines = [];
 		this.areaLines = [];
 		this.axisCanvasX;
@@ -40,7 +40,7 @@ class Chart {
 		this.leftBlock;
 		this.rightBlock;
 		this.xValues = [];
-
+		this.selectedCoordsCanvas = null;
 		this.parseXValues(data);
 		this.parseLineColumns(data);
 	}
@@ -57,6 +57,7 @@ class Chart {
 		const lineColumns = data.columns.filter(item => data.types[item[0]] === Chart.TYPE.LINE);
 
 		this.maxY = this.findMax(lineColumns);
+		this.maxYArea = this.maxY;
 
 		for (let i = 0; i < lineColumns.length; i++) {
 			const columns = lineColumns[i];
@@ -123,7 +124,7 @@ class Chart {
 		this.areaContainer = areaContainer;
 		mainCanvasContainer.addEventListener("mousemove", this.onMouseMove.bind(this));
 		this.createCanvases();
-		this.updateScales(this.findMaxY());
+		this.updateScales();
 		this.draw();
 	}
 
@@ -193,10 +194,26 @@ class Chart {
 		return this.findMax(visibleValuesY);
 	}
 
-	updateScales(maxY) {
+	findMaxYArea() {
+		const visibleValuesY = [];
+		this.lines.forEach(line => {
+			if (line.active) {
+				visibleValuesY.push(line.columns);
+			}
+		});
+		return this.findMax(visibleValuesY);
+	}
+
+	updateScales() {
+		this.selectedCoordX = 0;
+
+		const maxY = this.findMaxY();
+		const maxYArea = this.findMaxYArea();
+
 		this.selectedCoordX = 0;
 		this.lastMaxY = this.maxY;
 		this.maxY = maxY;
+		this.maxYArea = maxYArea;
 	}
 
 	createCanvasContainer(height) {
@@ -204,6 +221,13 @@ class Chart {
 		div.style.position = "absolute";
 		div.style.overflow = "hidden";
 		div.style.height = height + "px";
+		return div;
+	}
+
+	createSelectedCoordsCanvas() {
+		const div = document.createElement("div");
+		div.style.position = "absolute";
+		div.style.overflow = "hidden";
 		return div;
 	}
 
@@ -230,22 +254,17 @@ class Chart {
 		span.addEventListener("click", (event) => {
 			line.toggle();
 			const newMaxY = this.findMaxY();
-			let className = "";
-			if (this.isStepChanged(this.maxY, newMaxY)) {
-				const stepIncreased = this.isStepIncreased(this.maxY, newMaxY);
-				className = line.active ? this.getFadeInClassName(stepIncreased) : this.getFadeOutClassName(stepIncreased);
+			const newMaxYArea = this.findMaxYArea();
 
-			} else {
-				className = line.active ? "run-animation-show" : "run-animation-hide";
-			}
-			const chartCanvas = line.canvas;
 			const areaCanvas = this.findAreaLineByKey(line.key).canvas;
+			const chartCanvas = line.canvas;
+
 			chartCanvas.style.opacity = line.active ? 0 : 1;
 			areaCanvas.style.opacity = line.active ? 0 : 1;
-			this.fadeCanvas(areaCanvas, className);
-			this.fadeCanvas(line.canvas, className);
-			this.drawFromLastToNewMaxY(this.maxY, newMaxY);
 
+			this.fadeCanvas(areaCanvas, this.getClassNameForLineCanvas(line.active, this.maxYArea, newMaxYArea));
+			this.fadeCanvas(line.canvas, this.getClassNameForLineCanvas(line.active, this.maxY, newMaxY));
+			this.drawFromLastToNewMaxY();
 		});
 		const name = document.createElement("span");
 		name.innerHTML = line.name;
@@ -257,6 +276,18 @@ class Chart {
 		container.appendChild(name);
 
 		return container;
+	}
+
+	getClassNameForLineCanvas(active, oldMaxY, newMaxY) {
+		let className = "";
+		if (this.isStepChanged(oldMaxY, newMaxY)) {
+			const stepIncreased = this.isStepIncreased(oldMaxY, newMaxY);
+			className = active ? this.getFadeInClassName(stepIncreased) : this.getFadeOutClassName(stepIncreased);
+
+		} else {
+			className = active ? "run-animation-show" : "run-animation-hide";
+		}
+		return className;
 	}
 
 	createCanvases() {
@@ -290,6 +321,8 @@ class Chart {
 		this.axisCanvasY = this.createCanvasAxisY();
 		canvasContainerY.appendChild(this.axisCanvasY);
 		this.container.appendChild(canvasContainerY);
+
+		this.selectedCoordsCanvas = this.createSelectedCoordsCanvas();
 	}
 
 	createCanvasAxisY() {
@@ -313,11 +346,23 @@ class Chart {
 	}
 
 	drawLines() {
+		const coords = {};
 		for (let i = 0; i < this.lines.length; i++) {
 			const line = this.lines[i];
 			line.draw();
-			line.drawArcs();
+			const lineCoords = line.drawArcs();
+			coords[line.key] = lineCoords;
 		}
+		this.drawSelectedCoords();
+	}
+
+	drawSelectedCoords() {
+		// const context = this.selectedCoordsCanvas.getContext('2d');
+		// const x = this.selectedCoordX;
+		// for (let i = 0; i < this.lines.length; i++) {
+		// 	const line = this.lines[i];
+		// 	line.coords
+		// }
 	}
 
 	drawAreaLines() {
@@ -581,7 +626,7 @@ class Chart {
 				}
 				leftBlock.style.width = leftBlockWidth + "px";
 				rightBlock.style.width = rightBlockWidth + "px";
-				that.applyScales(that.findMaxY());
+				that.applyScales();
 			}
 		};
 
@@ -592,29 +637,28 @@ class Chart {
 		return area;
 	}
 
-	applyScales(maxY) {
-		this.updateScales(maxY);
+	applyScales() {
+		this.updateScales();
+		this.lines.forEach(line => line.maxY = this.maxY);
 		this.drawLines();
 		this.drawAxisX();
 		this.drawAxisY();
 	}
 
-	drawFromLastToNewMaxY(from, to) {
-		this.stretch(from, to, Math.abs(from - to) / 50);
+	drawFromLastToNewMaxY() {
+		const maxYArea = this.maxYArea;
+		this.updateScales();
 
-		this.selectedCoordX = 0;
-		this.lastMaxY = from;
-		this.maxY = to;
+		this.stretch(this.lastMaxY, this.maxY, Math.abs(this.lastMaxY - this.maxY) / 50);
+		this.stretchArea(maxYArea, this.maxYArea, Math.abs(maxYArea - this.maxYArea) / 50);
+
 		this.drawAxisX();
-		this.drawAxisY(to);
+		this.drawAxisY();
 	}
 
 	stretch(current, final, step) {
-		this.updateScales(current);
-		this.lines.forEach(line => line.maxY = this.maxY);
-		this.areaLines.forEach(line => line.maxY = this.maxY);
+		this.lines.forEach(line => line.maxY = current);
 		this.drawLines();
-		this.drawAreaLines();
 		if (current !== final) {
 			if (Math.abs(current - final) < step) {
 				setTimeout(() => {
@@ -624,6 +668,23 @@ class Chart {
 				const next = current < final ? current + step : current - step;
 				setTimeout(() => {
 					this.stretch(next, final, step);
+				}, 0);
+			}
+		}
+	}
+
+	stretchArea(current, final, step) {
+		this.areaLines.forEach(line => line.maxY = current);
+		this.drawAreaLines();
+		if (current !== final) {
+			if (Math.abs(current - final) < step) {
+				setTimeout(() => {
+					this.stretchArea(final, final);
+				}, 0);
+			} else {
+				const next = current < final ? current + step : current - step;
+				setTimeout(() => {
+					this.stretchArea(next, final, step);
 				}, 0);
 			}
 		}
@@ -661,7 +722,7 @@ class Chart {
 					resultWidth = DRAG_ITEM_WIDTH;
 				}
 				container.style.width = resultWidth + "px";
-				that.applyScales(that.findMaxY());
+				that.applyScales();
 			}
 		};
 

@@ -132,3 +132,12 @@ body > div {
         opacity: 1;
     }
 }
+
+@keyframes show {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

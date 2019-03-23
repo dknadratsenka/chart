@@ -157,7 +157,14 @@ class Chart {
 		event.preventDefault();
 		const coords = this.findRelativeMouseCoords(event);
 		this.selectedCoordX = coords.x;
-		this.drawLines();
+		for (let i = 0; i < this.lines.length; i++) {
+			const line = this.lines[i];
+			const lineCoords = line.getClosestCoordsByX();
+			if (!line.selectedCoords || (lineCoords && lineCoords.indexX !== line.selectedCoords.indexX)) {
+				line.draw();
+				line.drawArcs(lineCoords);
+			}
+		}
 		this.drawVerticalCanvas(coords);
 		this.drawTipContainer();
 
@@ -431,7 +438,7 @@ class Chart {
 		for (let i = 0; i < this.lines.length; i++) {
 			const line = this.lines[i];
 			line.draw();
-			line.drawArcs();
+			line.drawArcs(line.getClosestCoordsByX());
 		}
 	}
 

@@ -48,9 +48,8 @@ class LineCanvas {
 		context.stroke();
 	}
 
-	drawArcs() {
+	drawArcs(coords) {
 		const context = this.canvas.getContext('2d');
-		const coords = this.getClosestCoordsByX();
 		if (coords) {
 			context.beginPath();
 			context.fillStyle = "white";

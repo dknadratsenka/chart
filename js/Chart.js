@@ -466,8 +466,10 @@ class Chart {
 
 		this.maxX = new Date(this.findMax(this.currentXValues));
 		this.minX = new Date(this.findMin(this.currentXValues));
-		const stepX = (this.maxX - this.minX) / this.maxAxisColumns;
-		const stepCoordX = this.width / this.maxAxisColumns;
+
+		const axisColumns = this.maxAxisColumns > this.currentXValues.length ? this.currentXValues.length : this.maxAxisColumns;
+		const stepX = (this.maxX - this.minX) / (axisColumns - 1);
+		const stepCoordX = this.width / axisColumns;
 		let coordValueX = 0;
 
 		const context = this.axisCanvasX.getContext('2d');
@@ -475,7 +477,7 @@ class Chart {
 		context.clearRect(0, 0, this.width, this.container.offsetHeight);
 
 		let valueX = this.minX;
-		for (let i = 0; i < this.maxAxisColumns; i++) {
+		for (let i = 0; i < axisColumns; i++) {
 			context.fillText(this.fromDateToMMDD(valueX), coordValueX, this.height + this.textPadding * 2);
 			valueX = new Date(valueX.getTime() + stepX);
 			coordValueX += stepCoordX;
@@ -814,7 +816,7 @@ class Chart {
 	findMin(arrays) {
 		const arr = [].concat.apply([], arrays)
 		let min = null;
-		for (let i = 1; i < arr.length; i++) {
+		for (let i = 0; i < arr.length; i++) {
 			var item = arr[i];
 			if (typeof item === "number" && (item < min || !min)) min = item;
 		}

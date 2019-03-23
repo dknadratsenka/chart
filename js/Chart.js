@@ -20,6 +20,7 @@ class Chart {
 		this.types = data.types;
 		this.colors = data.colors;
 		this.maxY = null;
+		this.lastMaxY = null;
 		this.maxX = null;
 		this.minX = null;
 		this.width = width;
@@ -112,7 +113,6 @@ class Chart {
 		mainCanvasContainer.style.height = mainCanvasHeight + "px";
 
 
-
 		container.appendChild(mainCanvasContainer);
 		container.appendChild(areaContainer);
 
@@ -185,32 +185,55 @@ class Chart {
 			line.recalculateBoundaries(leftIndex, rightIndex);
 			visibleValuesY.push(line.columnsToDraw);
 		});
+		this.lastMaxY = this.maxY;
 		this.maxY = this.findMax(visibleValuesY);
 		this.lines.forEach(line => line.maxY = this.maxY);
+	}
+
+	createCanvasContainer(height) {
+		const div = document.createElement("div");
+		div.style.position = "absolute";
+		div.style.overflow = "hidden";
+		div.style.height = height + "px";
+		return div;
 	}
 
 	createCanvases() {
 
 		for (let i = 0; i < this.lines.length; i++) {
+			const canvasContainer = this.createCanvasContainer(this.container.offsetHeight);
 			const canvas = this.createCanvas(this.createId(i), this.container.offsetHeight, this.width, true);
 			this.lines[i].canvas = canvas;
-			this.container.appendChild(canvas);
+			canvasContainer.appendChild(canvas);
+			this.container.appendChild(canvasContainer);
 		}
 
 		for (let i = 0; i < this.areaLines.length; i++) {
+			const canvasContainer = this.createCanvasContainer(this.areaContainer.offsetHeight);
 			const areaCanvas = this.createCanvas(this.createId("area-canvas-" + i), this.areaContainer.offsetHeight, this.width, true);
 			this.areaLines[i].canvas = areaCanvas;
-			this.areaContainer.appendChild(areaCanvas);
+			canvasContainer.appendChild(areaCanvas);
+			this.areaContainer.appendChild(canvasContainer);
 		}
 
+		const canvasContainer = this.createCanvasContainer(this.container.offsetHeight - this.textPadding);
 		this.verticalCanvas = this.createCanvas(this.createId('vertical-info'), this.container.offsetHeight - this.textPadding, this.width, true);
-		this.container.appendChild(this.verticalCanvas);
+		canvasContainer.appendChild(this.verticalCanvas);
+		this.container.appendChild(canvasContainer);
 
+		const canvasContainerX = this.createCanvasContainer(this.container.offsetHeight);
 		this.axisCanvasX = this.createAxisCanvas('x', this.container.offsetHeight);
-		this.container.appendChild(this.axisCanvasX);
+		canvasContainerX.appendChild(this.axisCanvasX);
+		this.container.appendChild(canvasContainerX);
 
-		this.axisCanvasY = this.createAxisCanvas('x', this.container.offsetHeight - this.textPadding);
-		this.container.appendChild(this.axisCanvasY);
+		const canvasContainerY = this.createCanvasContainer(this.container.offsetHeight - this.textPadding);
+		this.axisCanvasY = this.createCanvasAxisY();
+		canvasContainerY.appendChild(this.axisCanvasY);
+		this.container.appendChild(canvasContainerY);
+	}
+
+	createCanvasAxisY() {
+		return this.createAxisCanvas('y', this.container.offsetHeight - this.textPadding);
 	}
 
 	createAxisCanvas(idPostfix, height) {
@@ -281,14 +304,68 @@ class Chart {
 		context.stroke();
 	}
 
+	fadeOutOldCanvasY(canvas, clazz) {
+		const classes = [];
+		for (let i = 0; i < canvas.classList.length; i++) {
+			const className = canvas.classList[i];
+			if (className.indexOf("run-animation") > -1) {
+				classes.push(className);
+			}
+		}
+		classes.forEach((className) => {
+			canvas.classList.remove(className);
+		});
+
+		setTimeout(() => {
+			canvas.classList.add(clazz);
+		}, 0);
+
+		canvas.addEventListener("webkitAnimationEnd", onAnimationEnd);
+		canvas.addEventListener("animationend", onAnimationEnd);
+
+		function onAnimationEnd(event) {
+			const canvasContainer = event.target.parentNode;
+			if (!canvasContainer) return;
+
+			const parent = canvasContainer.parentNode;
+			if (!parent) return;
+
+			parent.removeChild(canvasContainer);
+		}
+	}
+
 	drawAxisY() {
+		const newStep = this.round(this.maxY / this.maxAxisYColumns);
+		const oldStep = this.round(this.lastMaxY / this.maxAxisYColumns);
+
+		const isStepIncreased = newStep > oldStep;
+		const stepChanged = oldStep !== newStep;
+
+		let classNameNewCanvas = isStepIncreased ? "run-animation-top-mid" : "run-animation-bot-mid";
+		let classNameOldCanvas = isStepIncreased ? "run-animation-mid-bot" : "run-animation-mid-top";
+
+		if (this.scaleY !== 1 && stepChanged) {
+			const oldCanvas = this.axisCanvasY;
+
+			const canvasContainerY = this.createCanvasContainer(this.container.offsetHeight - this.textPadding);
+			this.axisCanvasY = this.createCanvasAxisY();
+			canvasContainerY.appendChild(this.axisCanvasY);
+			this.axisCanvasY.classList.add(classNameNewCanvas);
+
+			this.container.appendChild(canvasContainerY);
+
+			this._drawAxisY();
+			this.fadeOutOldCanvasY(oldCanvas, classNameOldCanvas);
+		} else {
+			this._drawAxisY();
+		}
+	}
+
+	_drawAxisY() {
+		const newScaleY = this.height / this.maxY;
 		const context = this.axisCanvasY.getContext('2d');
 		context.beginPath();
 		context.clearRect(0, 0, this.width, this.container.offsetHeight);
-		const newScaleY = this.height / this.maxY;
-		if (this.scaleY) {
-
-		}
 		this.scaleY = newScaleY;
 		let valueY = 0;
 		let stepY = this.round(this.maxY / this.maxAxisYColumns);
@@ -330,9 +407,7 @@ class Chart {
 		canvas.height = height;
 		canvas.style.width = width + "px";
 		canvas.style.height = height + "px";
-		canvas.style.position = "absolute";
-		canvas.id = id;
-
+		canvas.style.position = "relative";
 		if (isTranslated) {
 			const context = canvas.getContext('2d');
 			context.translate(0, height);
@@ -454,6 +529,7 @@ class Chart {
 		element.onmousedown = function (event) {
 			document.addEventListener('mousemove', onMouseMove);
 			document.addEventListener('mouseup', onMouseUp);
+
 			function onMouseUp() {
 				document.removeEventListener('mousemove', onMouseMove);
 				document.removeEventListener('mouseup', onMouseUp);

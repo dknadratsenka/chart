@@ -6,3 +6,79 @@
 body > div {
 	margin: 50px 50px;
 }
+
+.run-animation-top-mid {
+    animation: top-mid 200ms ease forwards;
+    -webkit-animation: top-mid 200ms ease forwards;
+}
+
+.run-animation-mid-bot {
+    animation: mid-bot 200ms ease forwards;
+    -webkit-animation: mid-bot 200ms ease forwards;
+}
+
+.run-animation-mid-top {
+    animation: mid-top 200ms ease forwards;
+    -webkit-animation: mid-top 200ms ease forwards;
+}
+
+.run-animation-bot-mid {
+    animation: bot-mid 200ms ease forwards;
+    -webkit-animation: bot-mid 200ms ease forwards;
+}
+
+@keyframes mid-top {
+    from {
+        top: 0;
+        opacity: 1;
+    }
+    70% {
+        opacity: 0.2;
+    }
+    to {
+        top: -100px;
+        opacity: 0;
+    }
+}
+
+@keyframes top-mid {
+    from {
+        top: -100px;
+        opacity: 0;
+    }
+    70% {
+        opacity: 0.2;
+    }
+    to {
+        top: 0;
+        opacity: 1;
+    }
+}
+
+@keyframes bot-mid {
+    from {
+        top: 100px;
+        opacity: 0;
+    }
+    70% {
+        opacity: 0.2;
+    }
+    to {
+        top: 0;
+        opacity: 1;
+    }
+}
+
+@keyframes mid-bot {
+    from {
+        top: 0;
+        opacity: 1;
+    }
+    70% {
+        opacity: 0.2;
+    }
+    to {
+        top: 100px;
+        opacity: 0;
+    }
+}

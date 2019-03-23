@@ -457,19 +457,16 @@ class Chart {
 		this.minX = new Date(this.findMin(this.currentXValues));
 		const stepX = (this.maxX - this.minX) / this.maxAxisColumns;
 		const stepCoordX = this.width / this.maxAxisColumns;
-		let coordValueX = stepCoordX;
+		let coordValueX = 0;
 
 		const context = this.axisCanvasX.getContext('2d');
 		context.beginPath();
 		context.clearRect(0, 0, this.width, this.container.offsetHeight);
 
-		let valueY = 0;
 		let valueX = this.minX;
-		let stepY = this.round(this.maxY / this.maxAxisYColumns);
 		for (let i = 0; i < this.maxAxisColumns; i++) {
 			context.fillText(this.fromDateToMMDD(valueX), coordValueX, this.height + this.textPadding * 2);
 			valueX = new Date(valueX.getTime() + stepX);
-			valueY += stepY;
 			coordValueX += stepCoordX;
 		}
 		context.stroke();

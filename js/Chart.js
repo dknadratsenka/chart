@@ -34,7 +34,7 @@ class Chart {
 		this.lines = [];
 		this.areaLines = [];
 		this.axisCanvasX;
-
+		this.fadingCanvas = null;
 		this.selectedCoordX;
 		this.DRAG_ITEM_WIDTH = 5;
 		this.leftBlock;
@@ -501,13 +501,19 @@ class Chart {
 			canvas.classList.add(clazz);
 		}, 0);
 
+
+		const that = this;
 		if (deleteOnEnd) {
+			if (this.fadingCanvas) {
+				onAnimationEnd();
+			}
+			this.fadingCanvas = canvas;
 			canvas.addEventListener("webkitAnimationEnd", onAnimationEnd);
 			canvas.addEventListener("animationend", onAnimationEnd);
 		}
 
 		function onAnimationEnd(event) {
-			const canvasContainer = event.target.parentNode;
+			const canvasContainer = that.fadingCanvas.parentNode;
 			if (!canvasContainer) return;
 
 			const parent = canvasContainer.parentNode;
@@ -541,17 +547,13 @@ class Chart {
 
 	drawAxisY() {
 		const isStepIncreased = this.isStepIncreased(this.lastMaxY, this.maxY);
-
 		if (this.scaleY !== 1 && this.isStepChanged(this.lastMaxY, this.maxY)) {
 			const oldCanvas = this.axisCanvasY;
-
 			const canvasContainerY = this.createCanvasContainer(this.container.offsetHeight - this.textPadding);
 			this.axisCanvasY = this.createCanvasAxisY();
 			canvasContainerY.appendChild(this.axisCanvasY);
 			this.axisCanvasY.classList.add(this.getFadeInClassName(isStepIncreased));
-
 			this.container.appendChild(canvasContainerY);
-
 			this._drawAxisY();
 			this.fadeCanvas(oldCanvas, this.getFadeOutClassName(isStepIncreased), true);
 		} else {

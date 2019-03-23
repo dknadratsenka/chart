@@ -41,7 +41,7 @@ class LineCanvas {
 		context.strokeStyle = this.color;
 		context.lineWidth = 2;
 		context.moveTo(0, this.offsetY + scaleY * this.columnsToDraw[0]);
-		for (let j = 0; j < this.columnsToDraw.length; j++) {
+		for (let j = 1; j < this.columnsToDraw.length; j++) {
 			const scaleX = this.scaleX || this.chart.scaleX;
 			context.lineTo(scaleX * j, this.offsetY + scaleY * this.columnsToDraw[j]);
 		}

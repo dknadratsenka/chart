@@ -454,7 +454,7 @@ class Chart {
 			newColumns.splice(0, leftIndex);
 		}
 		if (rightIndex) {
-			newColumns.splice(newColumns.length - 1 - rightIndex, newColumns.length);
+			newColumns.splice(newColumns.length - rightIndex, newColumns.length);
 		}
 		return newColumns;
 	}
@@ -468,7 +468,7 @@ class Chart {
 		this.minX = new Date(this.findMin(this.currentXValues));
 
 		const axisColumns = this.maxAxisColumns > this.currentXValues.length ? this.currentXValues.length : this.maxAxisColumns;
-		const stepX = (this.maxX - this.minX) / (axisColumns - 1);
+		const stepX = (this.maxX - this.minX) / axisColumns;
 		const stepCoordX = this.width / axisColumns;
 		let coordValueX = 0;
 

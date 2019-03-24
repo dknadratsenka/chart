@@ -713,6 +713,7 @@ class Chart {
 	}
 
 	createDraggableArea(height, leftBlock, rightBlock) {
+		let lastX = 0;
 		const area = document.createElement("div");
 		area.style.cursor = "pointer";
 		area.style.borderTop = "1px solid rgb(40, 112, 160)";
@@ -725,14 +726,25 @@ class Chart {
 		area.style.position = "absolute";
 		const that = this;
 		const DRAG_ITEM_WIDTH = this.DRAG_ITEM_WIDTH;
-		area.onmousedown = function (event) {
+		area.addEventListener("mousedown", onMouseDown);
+		area.addEventListener("touchstart", onMouseDown);
+
+		function onMouseDown(event) {
+			event.preventDefault();
+			if (event.touches) {
+				lastX = event.touches[0].clientX;
+			}
 			document.addEventListener('mousemove', onMouseMove);
+			document.addEventListener('touchmove', onMouseMove);
 			document.addEventListener('mouseup', onMouseUp);
+			document.addEventListener('touchend', onMouseUp);
 
-			function onMouseUp() {
-
+			function onMouseUp(event) {
+				event.preventDefault();
 				document.removeEventListener('mousemove', onMouseMove);
 				document.removeEventListener('mouseup', onMouseUp);
+				document.removeEventListener('touchend', onMouseUp);
+				document.removeEventListener('touchmove', onMouseMove);
 			}
 
 			function onMouseMove(event) {
@@ -740,8 +752,14 @@ class Chart {
 					onMouseUp();
 					return;
 				}
+				let step;
+				if (event.movementX) {
+					step = event.movementX;
+				} else {
+					step = event.touches[0].clientX - lastX;
+					lastX = event.touches[0].clientX;
+				}
 
-				const step = event.movementX;
 				const leftBlockWidth = leftBlock.offsetWidth + step;
 				const rightBlockWidth = rightBlock.offsetWidth - step;
 				if (leftBlockWidth < DRAG_ITEM_WIDTH || rightBlockWidth < DRAG_ITEM_WIDTH) {
@@ -751,7 +769,7 @@ class Chart {
 				rightBlock.style.width = rightBlockWidth + "px";
 				that.applyScales(event.movementX > 0, true, false);
 			}
-		};
+		}
 
 		area.ondragstart = function () {
 			return false;
@@ -821,40 +839,60 @@ class Chart {
 	}
 
 	addResizableBlockEvent(element, container, left, otherBlock) {
+		let lastX = 0;
 		const MIN_VISIBLE_AREA = 20;
 		const DRAG_ITEM_WIDTH = this.DRAG_ITEM_WIDTH;
 		const that = this;
-		element.onmousedown = function (event) {
-			document.addEventListener('mousemove', onMouseMove);
-			document.addEventListener('mouseup', onMouseUp);
+		element.addEventListener("mousedown", onMouseDown);
+		element.addEventListener("touchstart", onMouseDown);
 
-			function onMouseUp() {
+		function onMouseDown(event) {
+			event.preventDefault();
+			if (event.touches) {
+				lastX = event.touches[0].clientX;
+			}
+			document.addEventListener('mousemove', onMouseMove);
+			document.addEventListener('touchmove', onMouseMove);
+			document.addEventListener('mouseup', onMouseUp);
+			document.addEventListener('touchend', onMouseUp);
+
+			function onMouseUp(event) {
+				event.preventDefault();
 				document.removeEventListener('mousemove', onMouseMove);
 				document.removeEventListener('mouseup', onMouseUp);
+				document.removeEventListener('touchend', onMouseUp);
+				document.removeEventListener('touchmove', onMouseMove);
 			}
 
 			function onMouseMove(event) {
 				const elementX = element.getBoundingClientRect().x;
-				if ((left && elementX < event.clientX && event.movementX < 0)
-					|| (left && elementX > event.clientX && event.movementX > 0)
-					|| (!left && event.clientX < elementX && event.movementX > 0)
-					|| (!left && event.clientX > elementX && event.movementX < 0)
+				let step;
+				if (event.movementX) {
+					step = event.movementX;
+				} else {
+					step = event.touches[0].clientX - lastX;
+					lastX = event.touches[0].clientX;
+				}
+				if ((left && elementX < event.clientX && step < 0)
+					|| (left && elementX > event.clientX && step > 0)
+					|| (!left && event.clientX < elementX && step > 0)
+					|| (!left && event.clientX > elementX && step < 0)
 				) {
 					return;
 				}
 				const maxWidth = that.areaContainer.offsetWidth - otherBlock.offsetWidth - MIN_VISIBLE_AREA;
 				let resultWidth = left
-					? container.offsetWidth + event.movementX
-					: container.offsetWidth - event.movementX;
+					? container.offsetWidth + step
+					: container.offsetWidth - step;
 				if (resultWidth > maxWidth) {
 					resultWidth = maxWidth;
 				} else if (resultWidth < DRAG_ITEM_WIDTH) {
 					resultWidth = DRAG_ITEM_WIDTH;
 				}
 				container.style.width = resultWidth + "px";
-				that.applyScales(event.movementX > 0, false, true);
+				that.applyScales(step > 0, false, true);
 			}
-		};
+		}
 
 		element.ondragstart = function () {
 			return false;

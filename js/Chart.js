@@ -739,8 +739,7 @@ class Chart {
 			document.addEventListener('mouseup', onMouseUp);
 			document.addEventListener('touchend', onMouseUp);
 
-			function onMouseUp(event) {
-				event.preventDefault();
+			function onMouseUp() {
 				document.removeEventListener('mousemove', onMouseMove);
 				document.removeEventListener('mouseup', onMouseUp);
 				document.removeEventListener('touchend', onMouseUp);

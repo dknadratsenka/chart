@@ -1,10 +1,5 @@
 class Chart {
 
-	static TYPE = {
-		LINE: "line",
-		X: "x"
-	};
-
 	/**
 	 * @param id
 	 * @param {Object[]} data
@@ -36,7 +31,7 @@ class Chart {
 		this.axisCanvasX;
 		this.fadingCanvas = null;
 		this.selectedCoordX;
-		this.DRAG_ITEM_WIDTH = 5;
+		this.DRAG_ITEM_WIDTH = 10;
 		this.leftBlock;
 		this.rightBlock;
 		this.xValues = [];
@@ -922,3 +917,8 @@ class Chart {
 		return this.areaLines.find(line => line.key === key);
 	}
 }
+
+Chart.TYPE = {
+	LINE: "line",
+	X: "x"
+};

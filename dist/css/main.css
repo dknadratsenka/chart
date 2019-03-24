@@ -1,0 +1,282 @@
+#chart-container {
+
+    padding: 20px;
+}
+
+body > div {
+    margin: 50px 50px;
+}
+
+.line-switcher {
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
+}
+
+.line-switcher-off {
+    background: white;
+}
+
+.line-switcher-main-container {
+    display: flex;
+}
+
+.line-switcher-container {
+    display: flex;
+    margin: 5px;
+    border: 1px solid #bdbbbb;
+    border-radius: 20px;
+    padding: 5px 7px;
+}
+
+.tip-container {
+    position: relative;
+    height: 75px;
+    width: auto;
+    display: none;
+    border-radius: 7px;
+    border: 1px solid #c5c5c5;
+    box-sizing: border-box;
+    background: white;
+    text-align: center;
+    z-index: 15;
+    opacity: 0.9;
+}
+
+.tip-container-title {
+    display: inline-block;
+    margin: 5px;
+    font-weight: 700;
+}
+
+.run-animation-top-mid {
+    animation: top-mid 300ms ease forwards;
+    -webkit-animation: top-mid 300ms ease forwards;
+}
+
+.run-animation-mid-bot {
+    animation: mid-bot 300ms ease forwards;
+    -webkit-animation: mid-bot 300ms ease forwards;
+}
+
+.run-animation-mid-top {
+    animation: mid-top 300ms ease forwards;
+    -webkit-animation: mid-top 300ms ease forwards;
+}
+
+.run-animation-bot-mid {
+    animation: bot-mid 300ms ease forwards;
+    -webkit-animation: bot-mid 300ms ease forwards;
+}
+
+.run-animation-hide {
+    animation: hide 300ms ease forwards;
+    -webkit-animation: hide 300ms ease forwards;
+}
+
+.run-animation-show {
+    animation: show 300ms ease forwards;
+    -webkit-animation: show 300ms ease forwards;
+}
+
+.run-animation-right-out {
+    animation: right-out 300ms ease forwards;
+    -webkit-animation: right-out 300ms ease forwards;
+}
+
+.run-animation-left-out {
+    animation: left-out 300ms ease forwards;
+    -webkit-animation: left-out 300ms ease forwards;
+}
+
+.run-animation-left-in {
+    animation: left-in 300ms ease forwards;
+    -webkit-animation: left-in 300ms ease forwards;
+}
+.run-animation-right-in {
+    animation: right-in 300ms ease forwards;
+    -webkit-animation: right-in 300ms ease forwards;
+}
+
+.run-animation-mid-right {
+    animation: mid-right 300ms ease forwards;
+    -webkit-animation: mid-right 300ms ease forwards;
+}
+
+.run-animation-mid-left {
+    animation: mid-left 300ms ease forwards;
+    -webkit-animation: mid-left 300ms ease forwards;
+}
+
+.run-animation-right-mid {
+    animation: right-mid 300ms ease forwards;
+    -webkit-animation: right-mid 300ms ease forwards;
+}
+
+.run-animation-left-mid {
+    animation: left-mid 300ms ease forwards;
+    -webkit-animation: left-mid 300ms ease forwards;
+}
+
+@keyframes mid-top {
+    from {
+        top: 0;
+        opacity: 1;
+    }
+    to {
+        top: -100px;
+        opacity: 0;
+    }
+}
+
+@keyframes top-mid {
+    from {
+        top: -100px;
+        opacity: 0;
+    }
+
+    to {
+        top: 0;
+        opacity: 1;
+    }
+}
+
+@keyframes bot-mid {
+    from {
+        top: 100px;
+        opacity: 0;
+    }
+
+    to {
+        top: 0;
+        opacity: 1;
+    }
+}
+
+@keyframes mid-bot {
+    from {
+        top: 0;
+        opacity: 1;
+    }
+    to {
+        top: 100px;
+        opacity: 0;
+    }
+}
+
+@keyframes hide {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes show {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes show {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes mid-left {
+    from {
+        left: 0;
+        opacity: 1;
+    }
+    to {
+        left: -200px;
+        opacity: 0;
+    }
+}
+
+@keyframes left-mid {
+    from {
+        left: -400px;
+        opacity: 0;
+    }
+    to {
+        left: 0;
+        opacity: 1;
+    }
+}
+
+@keyframes mid-right {
+    from {
+        left: 0;
+        opacity: 1;
+    }
+    to {
+        left: 200px;
+        opacity: 0;
+    }
+}
+
+@keyframes right-mid {
+    from {
+        left: 400px;
+        opacity: 0;
+    }
+    to {
+        left: 0;
+        opacity: 1;
+    }
+}
+
+@keyframes right-out {
+    from {
+        left: 0;
+    }
+    to {
+        left: 100%;
+    }
+}
+
+@keyframes left-out {
+    from {
+        left: 0;
+    }
+    to {
+        left: -100%;
+    }
+}
+
+@keyframes right-in {
+    from {
+        left: 100%;
+    }
+    to {
+        left: 0;
+    }
+}
+
+@keyframes left-in {
+    from {
+        left: -100%;
+    }
+    to {
+        left: 0;
+    }
+}

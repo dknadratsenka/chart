@@ -35,9 +35,12 @@ class Chart {
 		this.leftBlock;
 		this.rightBlock;
 		this.xValues = [];
-		this.drawAxisX = this.throttle(this.drawAxisX, 300, this);
 		this.parseXValues(data);
 		this.parseLineColumns(data);
+		this.slowMode = this.xValues.length > 100000;
+		this.drawAxisX = this.throttle(this.drawAxisX, 300, this);
+		this.applyScales = this.throttle(this.applyScales, this.slowMode ? 300 : 50, this);
+		this.onMouseMove = this.throttle(this.onMouseMove, this.slowMode ? 300 : 50, this);
 	}
 
 	init() {
@@ -51,7 +54,7 @@ class Chart {
 	parseLineColumns(data) {
 		const lineColumns = data.columns.filter(item => data.types[item[0]] === Chart.TYPE.LINE);
 
-		this.maxY = this.findMax(lineColumns);
+		this.maxY = this.findMaxInArrays(lineColumns);
 		this.maxYArea = this.maxY;
 
 		for (let i = 0; i < lineColumns.length; i++) {
@@ -291,7 +294,7 @@ class Chart {
 				visibleValuesY.push(line.columnsToDraw);
 			}
 		});
-		return this.findMax(visibleValuesY);
+		return this.findMaxInArrays(visibleValuesY);
 	}
 
 	findMaxYArea() {
@@ -301,7 +304,7 @@ class Chart {
 				visibleValuesY.push(line.columns);
 			}
 		});
-		return this.findMax(visibleValuesY);
+		return this.findMaxInArrays(visibleValuesY);
 	}
 
 	updateScales() {
@@ -688,7 +691,7 @@ class Chart {
 		div.style.display = "inline-block";
 		div.style.position = "absolute";
 		div.style.opacity = 0.5;
-
+		div.style.zIndex = 2;
 
 		left ? div.style.left = 0 : div.style.right = 0;
 
@@ -780,12 +783,17 @@ class Chart {
 		const lastXValues = this.currentXValues;
 		this.currentXValues = this.applyBoundaries(this.xValues, leftIndex, rightIndex);
 		this.lines.forEach(line => line.maxY = this.maxY);
-		this.drawLines();
-
+		setTimeout(() => {
+			this.drawLines();
+		}, 0);
 		if (lastXValues[0] !== this.currentXValues[0] || lastXValues[lastXValues.length - 1] !== this.currentXValues[this.currentXValues.length - 1]) {
-			this.drawAxisX(movingRight, dragging, resizing);
+			setTimeout(() => {
+				this.drawAxisX(movingRight, dragging, resizing);
+			}, 0);
 		}
-		this.drawAxisY();
+		setTimeout(() => {
+			this.drawAxisY();
+		}, 0);
 	}
 
 	drawFromLastToNewMaxY() {
@@ -803,14 +811,16 @@ class Chart {
 		this.drawLines();
 		if (current !== final) {
 			if (Math.abs(current - final) < step) {
-				setTimeout(() => {
-					this.stretch(final, final);
-				}, 0);
+				this.stretch(final, final);
 			} else {
 				const next = current < final ? current + step : current - step;
-				setTimeout(() => {
+				if (this.slowMode) {
 					this.stretch(next, final, step);
-				}, 0);
+				} else {
+					setTimeout(() => {
+						this.stretch(next, final, step);
+					}, 0);
+				}
 			}
 		}
 	}
@@ -893,8 +903,7 @@ class Chart {
 		};
 	}
 
-	findMax(arrays) {
-		const arr = [].concat.apply([], arrays)
+	findMax(arr) {
 		let max = null;
 		for (let i = 0; i < arr.length; i++) {
 			var item = arr[i];
@@ -903,14 +912,23 @@ class Chart {
 		return max || 0;
 	}
 
-	findMin(arrays) {
-		const arr = [].concat.apply([], arrays)
+	findMin(arr) {
 		let min = null;
 		for (let i = 0; i < arr.length; i++) {
 			var item = arr[i];
 			if (typeof item === "number" && (item < min || !min)) min = item;
 		}
 		return min;
+	}
+
+	findMaxInArrays(arrays) {
+		let max = 0;
+		for (let k = 0; k < arrays.length; k++) {
+			let array = arrays[k];
+			let maxCurr = this.findMax(array);
+			if (maxCurr > max) max = maxCurr;
+		}
+		return max;
 	}
 
 	findAreaLineByKey(key) {

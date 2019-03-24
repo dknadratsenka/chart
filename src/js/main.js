@@ -39,14 +39,21 @@ const data = [{
 	"names": {"y0": "#0", "y1": "#1", "y2": "#2", "y3": "#3"},
 	"colors": {"y0": "#cb513a", "y1": "#73c03a", "y2": "#65b9ac", "y3": "#4682b4"}
 }];
-
+let big_data = {"columns":[["x"],["y0"],["y1"]],"types":{"y0":"line","y1":"line","x":"x"},"names":{"y0":"#0","y1":"#1"},"colors":{"y0":"#3DC23F","y1":"#F34C44"}};
+for (let i = 1; i <= 1000000; i++) {
+	big_data.columns[0][i] = i * 24*60*60*1000;
+	big_data.columns[1][i] = (Math.random() * 20 + (big_data.columns[1][i-1] - 10 || 0) + 0.5) << 0;
+	big_data.columns[2][i] = (Math.random() * 20 + (big_data.columns[2][i-1] - 10 || 0) + 0.5) << 0;
+}
+// var chart = new Chart("chart-container-0", big_data, 800, 300);
+// chart.init();
 var chart = new Chart("chart-container-0", data[0], 800, 300);
 chart.init();
-var chart1 = new Chart("chart-container-1", data[1], 800, 300);
-chart1.init();
-var chart2 = new Chart("chart-container-2", data[2], 800, 300);
-chart2.init();
-var chart3 = new Chart("chart-container-3", data[3], 800, 300);
-chart3.init();
-var chart4 = new Chart("chart-container-4", data[4], 800, 300);
-chart4.init();
+// var chart1 = new Chart("chart-container-1", data[1], 800, 300);
+// chart1.init();
+// var chart2 = new Chart("chart-container-2", data[2], 800, 300);
+// chart2.init();
+// var chart3 = new Chart("chart-container-3", data[3], 800, 300);
+// chart3.init();
+// var chart4 = new Chart("chart-container-4", data[4], 800, 300);
+// chart4.init();

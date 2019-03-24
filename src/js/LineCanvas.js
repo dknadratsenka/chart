@@ -13,6 +13,8 @@ class LineCanvas {
 		this.active = true;
 		this.switcher = null;
 		this.selectedCoords = null;
+		this.draw = this.chart.throttle(this.draw, 20, this);
+		this.drawArcs = this.chart.throttle(this.drawArcs, 20, this);
 	}
 
 	toggle() {
@@ -33,6 +35,7 @@ class LineCanvas {
 	}
 
 	draw() {
+		this.canvas.style.display = "none";
 		const chartHeight = Math.round(this.canvas.height - this.offsetY * 2);
 		const context = this.canvas.getContext('2d');
 		const scaleY = chartHeight / this.maxY;
@@ -46,9 +49,11 @@ class LineCanvas {
 			context.lineTo(scaleX * j, this.offsetY + scaleY * this.columnsToDraw[j]);
 		}
 		context.stroke();
+		this.canvas.style.display = "block";
 	}
 
 	drawArcs(coords) {
+		this.canvas.style.display = "none";
 		const context = this.canvas.getContext('2d');
 		if (coords) {
 			context.beginPath();
@@ -58,6 +63,7 @@ class LineCanvas {
 			context.stroke();
 		}
 		this.selectedCoords = coords;
+		this.canvas.style.display = "block";
 	}
 
 	getClosestCoordsByX() {

@@ -1,10 +1,7 @@
 class Chart {
 
-	/**
-	 * @param id
-	 * @param {Object[]} data
-	 */
 	constructor(id, data, width, height) {
+		this.parent = null;
 		this.maxAxisYColumns = 6;
 		this.maxAxisColumns = 6;
 		this.textPadding = 15;
@@ -38,6 +35,7 @@ class Chart {
 		this.parseXValues(data);
 		this.parseLineColumns(data);
 		this.slowMode = this.xValues.length > 100000;
+		this.nightMode = false;
 		this.drawAxisX = this.throttle(this.drawAxisX, 300, this);
 		this.applyScales = this.throttle(this.applyScales, this.slowMode ? 300 : 50, this);
 		this.onMouseMove = this.throttle(this.onMouseMove, this.slowMode ? 300 : 50, this);
@@ -119,11 +117,21 @@ class Chart {
 		container.appendChild(mainCanvasContainer);
 		container.appendChild(areaContainer);
 		container.appendChild(this.createSwitchersMainContainer());
+		container.appendChild(this.createDayNightModeButton());
+		this.parent = container;
 
 		this.areaContainer = areaContainer;
 		this.createCanvases();
 		this.updateScales();
 		this.draw();
+	}
+
+	createDayNightModeButton() {
+		const button = document.createElement("span");
+		button.innerHTML = "Day/Night mode";
+		button.classList.add("day-night-button");
+		button.addEventListener("click", this.toggleNightMode.bind(this));
+		return button;
 	}
 
 	findRelativeMouseCoords(e) {
@@ -450,9 +458,10 @@ class Chart {
 	createAxisCanvas(height) {
 		const canvas = this.createCanvas(height, this.width);
 		const context = canvas.getContext('2d');
-		context.strokeStyle = "#c5c5c5";
+		context.strokeStyle = "#adadad";
+		context.fillStyle = "#adadad";
 		context.lineWidth = 0.3;
-		context.font = "10px #c5c5c5";
+		context.font = "10px";
 		return canvas;
 	}
 
@@ -933,6 +942,12 @@ class Chart {
 
 	findAreaLineByKey(key) {
 		return this.areaLines.find(line => line.key === key);
+	}
+
+	toggleNightMode() {
+		this.nightMode = !this.nightMode;
+		this.parent.classList.toggle("chart-night-mode", this.nightMode);
+		this.tipContainer.classList.toggle("night-mode", this.nightMode);
 	}
 }
 

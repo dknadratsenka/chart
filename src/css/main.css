@@ -45,7 +45,7 @@ body > div {
     width: auto;
     display: none;
     border-radius: 7px;
-    border: 1px solid #c5c5c5;
+    border: 1px solid #adadad;
     box-sizing: border-box;
     background: white;
     text-align: center;
@@ -53,10 +53,36 @@ body > div {
     opacity: 0.9;
 }
 
+.night-mode {
+    background: #12132b !important;
+    border: 1px solid #adadad !important;
+    color: white !important;
+}
+
 .tip-container-title {
     display: inline-block;
     margin: 5px;
     font-weight: 700;
+}
+
+.chart-night-mode {
+    background: #12132b;
+    border: white;
+    color: white;
+}
+
+.day-night-button {
+    width: 100%;
+    border: none;
+    background: inherit;
+    color: inherit;
+    cursor: pointer;
+    display: inline-block;
+    text-align: center;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
 }
 
 .run-animation-top-mid {

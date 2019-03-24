@@ -5,14 +5,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Chart = function () {
-
-	/**
-  * @param id
-  * @param {Object[]} data
-  */
 	function Chart(id, data, width, height) {
 		_classCallCheck(this, Chart);
 
+		this.parent = null;
 		this.maxAxisYColumns = 6;
 		this.maxAxisColumns = 6;
 		this.textPadding = 15;
@@ -46,6 +42,7 @@ var Chart = function () {
 		this.parseXValues(data);
 		this.parseLineColumns(data);
 		this.slowMode = this.xValues.length > 100000;
+		this.nightMode = false;
 		this.drawAxisX = this.throttle(this.drawAxisX, 300, this);
 		this.applyScales = this.throttle(this.applyScales, this.slowMode ? 300 : 50, this);
 		this.onMouseMove = this.throttle(this.onMouseMove, this.slowMode ? 300 : 50, this);
@@ -120,11 +117,22 @@ var Chart = function () {
 			container.appendChild(mainCanvasContainer);
 			container.appendChild(areaContainer);
 			container.appendChild(this.createSwitchersMainContainer());
+			container.appendChild(this.createDayNightModeButton());
+			this.parent = container;
 
 			this.areaContainer = areaContainer;
 			this.createCanvases();
 			this.updateScales();
 			this.draw();
+		}
+	}, {
+		key: "createDayNightModeButton",
+		value: function createDayNightModeButton() {
+			var button = document.createElement("span");
+			button.innerHTML = "Day/Night mode";
+			button.classList.add("day-night-button");
+			button.addEventListener("click", this.toggleNightMode.bind(this));
+			return button;
 		}
 	}, {
 		key: "findRelativeMouseCoords",
@@ -478,9 +486,10 @@ var Chart = function () {
 		value: function createAxisCanvas(height) {
 			var canvas = this.createCanvas(height, this.width);
 			var context = canvas.getContext('2d');
-			context.strokeStyle = "#c5c5c5";
+			context.strokeStyle = "#adadad";
+			context.fillStyle = "#adadad";
 			context.lineWidth = 0.3;
-			context.font = "10px #c5c5c5";
+			context.font = "10px";
 			return canvas;
 		}
 	}, {
@@ -996,6 +1005,13 @@ var Chart = function () {
 			return this.areaLines.find(function (line) {
 				return line.key === key;
 			});
+		}
+	}, {
+		key: "toggleNightMode",
+		value: function toggleNightMode() {
+			this.nightMode = !this.nightMode;
+			this.parent.classList.toggle("chart-night-mode", this.nightMode);
+			this.tipContainer.classList.toggle("night-mode", this.nightMode);
 		}
 	}]);
 

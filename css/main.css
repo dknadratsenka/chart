@@ -56,6 +56,7 @@ body > div {
 .tip-container-title {
     display: inline-block;
     margin: 5px;
+    font-weight: 700;
 }
 
 .run-animation-top-mid {
@@ -86,6 +87,45 @@ body > div {
 .run-animation-show {
     animation: show 300ms ease forwards;
     -webkit-animation: show 300ms ease forwards;
+}
+
+.run-animation-right-out {
+    animation: right-out 300ms ease forwards;
+    -webkit-animation: right-out 300ms ease forwards;
+}
+
+.run-animation-left-out {
+    animation: left-out 300ms ease forwards;
+    -webkit-animation: left-out 300ms ease forwards;
+}
+
+.run-animation-left-in {
+    animation: left-in 300ms ease forwards;
+    -webkit-animation: left-in 300ms ease forwards;
+}
+.run-animation-right-in {
+    animation: right-in 300ms ease forwards;
+    -webkit-animation: right-in 300ms ease forwards;
+}
+
+.run-animation-mid-right {
+    animation: mid-right 300ms ease forwards;
+    -webkit-animation: mid-right 300ms ease forwards;
+}
+
+.run-animation-mid-left {
+    animation: mid-left 300ms ease forwards;
+    -webkit-animation: mid-left 300ms ease forwards;
+}
+
+.run-animation-right-mid {
+    animation: right-mid 300ms ease forwards;
+    -webkit-animation: right-mid 300ms ease forwards;
+}
+
+.run-animation-left-mid {
+    animation: left-mid 300ms ease forwards;
+    -webkit-animation: left-mid 300ms ease forwards;
 }
 
 @keyframes mid-top {
@@ -158,5 +198,85 @@ body > div {
     }
     to {
         opacity: 1;
+    }
+}
+
+@keyframes mid-left {
+    from {
+        left: 0;
+        opacity: 1;
+    }
+    to {
+        left: -200px;
+        opacity: 0;
+    }
+}
+
+@keyframes left-mid {
+    from {
+        left: -400px;
+        opacity: 0;
+    }
+    to {
+        left: 0;
+        opacity: 1;
+    }
+}
+
+@keyframes mid-right {
+    from {
+        left: 0;
+        opacity: 1;
+    }
+    to {
+        left: 200px;
+        opacity: 0;
+    }
+}
+
+@keyframes right-mid {
+    from {
+        left: 400px;
+        opacity: 0;
+    }
+    to {
+        left: 0;
+        opacity: 1;
+    }
+}
+
+@keyframes right-out {
+    from {
+        left: 0;
+    }
+    to {
+        left: 100%;
+    }
+}
+
+@keyframes left-out {
+    from {
+        left: 0;
+    }
+    to {
+        left: -100%;
+    }
+}
+
+@keyframes right-in {
+    from {
+        left: 100%;
+    }
+    to {
+        left: 0;
+    }
+}
+
+@keyframes left-in {
+    from {
+        left: -100%;
+    }
+    to {
+        left: 0;
     }
 }

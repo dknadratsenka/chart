@@ -40,7 +40,7 @@ class Chart {
 		this.leftBlock;
 		this.rightBlock;
 		this.xValues = [];
-		this.selectedCoordsCanvas = null;
+		this.drawAxisX = this.throttle(this.drawAxisX, 300, this);
 		this.parseXValues(data);
 		this.parseLineColumns(data);
 	}
@@ -94,6 +94,7 @@ class Chart {
 		xValues.splice(0, 1);
 		this.scaleX = this.width / (xValues.length - 1);
 		this.xValues = xValues;
+		this.currentXValues = this.xValues;
 	}
 
 	onDomReady() {
@@ -170,6 +171,31 @@ class Chart {
 
 	}
 
+	throttle(fn, delay, context) {
+		let timeout = null;
+		let lastCall = null;
+
+		return function () {
+			if (timeout) {
+				lastCall = fn.bind.apply(fn, [context].concat(Array.prototype.slice.call(arguments)));
+			} else {
+				fn.apply(context, arguments);
+				timeout = timeOut();
+			}
+
+			function timeOut() {
+				return setTimeout(function () {
+					timeout = null;
+					if (typeof lastCall === "function") {
+						lastCall();
+						lastCall = null;
+						timeout = timeOut();
+					}
+				}, delay);
+			}
+		}
+	}
+
 	drawTipContainer() {
 		while (this.tipContainer.firstChild) {
 			this.tipContainer.removeChild(this.tipContainer.firstChild);
@@ -217,6 +243,7 @@ class Chart {
 
 		const valueSpan = document.createElement("span");
 		valueSpan.style.color = color;
+		valueSpan.style.fontWeight = "700";
 		valueSpan.innerHTML = value;
 
 		const nameSpan = document.createElement("span");
@@ -399,7 +426,7 @@ class Chart {
 		this.container.appendChild(canvasContainer);
 
 		const canvasContainerX = this.createCanvasContainer(this.container.offsetHeight);
-		this.axisCanvasX = this.createAxisCanvas('x', this.container.offsetHeight);
+		this.axisCanvasX = this.createCanvasAxisX();
 		canvasContainerX.appendChild(this.axisCanvasX);
 		this.container.appendChild(canvasContainerX);
 
@@ -415,10 +442,14 @@ class Chart {
 	}
 
 	createCanvasAxisY() {
-		return this.createAxisCanvas('y', this.container.offsetHeight - this.textPadding);
+		return this.createAxisCanvas(this.container.offsetHeight - this.textPadding);
 	}
 
-	createAxisCanvas(idPostfix, height) {
+	createCanvasAxisX() {
+		return this.createAxisCanvas(this.container.offsetHeight);
+	}
+
+	createAxisCanvas(height) {
 		const canvas = this.createCanvas(height, this.width);
 		const context = canvas.getContext('2d');
 		context.strokeStyle = "#c5c5c5";
@@ -457,32 +488,6 @@ class Chart {
 			newColumns.splice(newColumns.length - rightIndex, newColumns.length);
 		}
 		return newColumns;
-	}
-
-	drawAxisX() {
-		const leftIndex = this.getLeftBoundaryIndex();
-		const rightIndex = this.getRightBoundaryIndex();
-		this.currentXValues = this.applyBoundaries(this.xValues, leftIndex, rightIndex);
-
-		this.maxX = new Date(this.findMax(this.currentXValues));
-		this.minX = new Date(this.findMin(this.currentXValues));
-
-		const axisColumns = this.maxAxisColumns > this.currentXValues.length ? this.currentXValues.length : this.maxAxisColumns;
-		const stepX = (this.maxX - this.minX) / axisColumns;
-		const stepCoordX = this.width / axisColumns;
-		let coordValueX = 0;
-
-		const context = this.axisCanvasX.getContext('2d');
-		context.beginPath();
-		context.clearRect(0, 0, this.width, this.container.offsetHeight);
-
-		let valueX = this.minX;
-		for (let i = 0; i < axisColumns; i++) {
-			context.fillText(this.fromDateToMMDD(valueX), coordValueX, this.height + this.textPadding * 2);
-			valueX = new Date(valueX.getTime() + stepX);
-			coordValueX += stepCoordX;
-		}
-		context.stroke();
 	}
 
 	fadeCanvas(canvas, clazz, deleteOnEnd) {
@@ -545,6 +550,50 @@ class Chart {
 		return isStepIncreased ? "run-animation-top-mid" : "run-animation-bot-mid";
 	}
 
+	drawAxisX(movingRight, dragging, resizing) {
+		if (dragging || resizing) {
+			let oldCanvasClassName;
+			let newCanvasClassName;
+			if (movingRight) {
+				oldCanvasClassName = dragging ? "run-animation-left-out" : "run-animation-mid-left";
+				newCanvasClassName = dragging ? "run-animation-right-in" : "run-animation-right-mid";
+			} else {
+				oldCanvasClassName = dragging ? "run-animation-right-out" : "run-animation-mid-right";
+				newCanvasClassName = dragging ? "run-animation-left-in" : "run-animation-left-mid";
+			}
+			const oldCanvas = this.axisCanvasX;
+			this.fadeCanvas(oldCanvas, oldCanvasClassName, true);
+
+			const canvasContainerX = this.createCanvasContainer(this.container.offsetHeight);
+			this.axisCanvasX = this.createCanvasAxisX();
+			this.axisCanvasX.classList.add(newCanvasClassName);
+			this._drawAxisX();
+			canvasContainerX.appendChild(this.axisCanvasX);
+			this.container.appendChild(canvasContainerX);
+		} else {
+			this._drawAxisX();
+		}
+	}
+
+	_drawAxisX() {
+		this.maxX = new Date(this.findMax(this.currentXValues));
+		this.minX = new Date(this.findMin(this.currentXValues));
+		const axisColumns = this.maxAxisColumns > this.currentXValues.length ? this.currentXValues.length : this.maxAxisColumns;
+		const stepX = (this.maxX - this.minX) / axisColumns;
+		const stepCoordX = this.width / axisColumns;
+		let coordValueX = 0;
+		const context = this.axisCanvasX.getContext('2d');
+		context.beginPath();
+		context.clearRect(0, 0, this.width, this.container.offsetHeight);
+		let valueX = this.minX;
+		for (let i = 0; i < axisColumns; i++) {
+			context.fillText(this.fromDateToMMDD(valueX), coordValueX, this.height + this.textPadding * 2);
+			valueX = new Date(valueX.getTime() + stepX);
+			coordValueX += stepCoordX;
+		}
+		context.stroke();
+	}
+
 	drawAxisY() {
 		const isStepIncreased = this.isStepIncreased(this.lastMaxY, this.maxY);
 		if (this.scaleY !== 1 && this.isStepChanged(this.lastMaxY, this.maxY)) {
@@ -553,8 +602,8 @@ class Chart {
 			this.axisCanvasY = this.createCanvasAxisY();
 			canvasContainerY.appendChild(this.axisCanvasY);
 			this.axisCanvasY.classList.add(this.getFadeInClassName(isStepIncreased));
-			this.container.appendChild(canvasContainerY);
 			this._drawAxisY();
+			this.container.appendChild(canvasContainerY);
 			this.fadeCanvas(oldCanvas, this.getFadeOutClassName(isStepIncreased), true);
 		} else {
 			this._drawAxisY();
@@ -700,7 +749,7 @@ class Chart {
 				}
 				leftBlock.style.width = leftBlockWidth + "px";
 				rightBlock.style.width = rightBlockWidth + "px";
-				that.applyScales();
+				that.applyScales(event.movementX > 0, true, false);
 			}
 		};
 
@@ -711,11 +760,19 @@ class Chart {
 		return area;
 	}
 
-	applyScales() {
+	applyScales(movingRight, dragging, resizing) {
 		this.updateScales();
+		const leftIndex = this.getLeftBoundaryIndex();
+		const rightIndex = this.getRightBoundaryIndex();
+
+		const lastXValues = this.currentXValues;
+		this.currentXValues = this.applyBoundaries(this.xValues, leftIndex, rightIndex);
 		this.lines.forEach(line => line.maxY = this.maxY);
 		this.drawLines();
-		this.drawAxisX();
+
+		if (lastXValues[0] !== this.currentXValues[0] || lastXValues[lastXValues.length - 1] !== this.currentXValues[this.currentXValues.length - 1]) {
+			this.drawAxisX(movingRight, dragging, resizing);
+		}
 		this.drawAxisY();
 	}
 
@@ -726,7 +783,6 @@ class Chart {
 		this.stretch(this.lastMaxY, this.maxY, Math.abs(this.lastMaxY - this.maxY) / 50);
 		this.stretchArea(maxYArea, this.maxYArea, Math.abs(maxYArea - this.maxYArea) / 50);
 
-		this.drawAxisX();
 		this.drawAxisY();
 	}
 
@@ -796,7 +852,7 @@ class Chart {
 					resultWidth = DRAG_ITEM_WIDTH;
 				}
 				container.style.width = resultWidth + "px";
-				that.applyScales();
+				that.applyScales(event.movementX > 0, false, true);
 			}
 		};
 

@@ -753,11 +753,11 @@ class Chart {
 					return;
 				}
 				let step;
-				if (event.movementX) {
-					step = event.movementX;
-				} else {
+				if (event.touches) {
 					step = event.touches[0].clientX - lastX;
 					lastX = event.touches[0].clientX;
+				} else {
+					step = event.movementX;
 				}
 
 				const leftBlockWidth = leftBlock.offsetWidth + step;
@@ -867,11 +867,11 @@ class Chart {
 			function onMouseMove(event) {
 				const elementX = element.getBoundingClientRect().x;
 				let step;
-				if (event.movementX) {
-					step = event.movementX;
-				} else {
+				if (event.touches) {
 					step = event.touches[0].clientX - lastX;
 					lastX = event.touches[0].clientX;
+				} else {
+					step = event.movementX;
 				}
 				if ((left && elementX < event.clientX && step < 0)
 					|| (left && elementX > event.clientX && step > 0)

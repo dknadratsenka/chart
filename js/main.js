@@ -40,122 +40,13 @@ const data = [{
 	"colors": {"y0": "#cb513a", "y1": "#73c03a", "y2": "#65b9ac", "y3": "#4682b4"}
 }];
 
-var arr = [...Array(99000)].map(() => {
-	return {x: Math.floor(Math.random() * 10000), y: Math.floor(Math.random() * 10000)};
-});
-
-var chart = new Chart("chart-container-0", data[0], 1000, 800);
+var chart = new Chart("chart-container-0", data[0], 800, 300);
 chart.init();
-var chart1 = new Chart("chart-container-1", data[1], 600, 300);
+var chart1 = new Chart("chart-container-1", data[1], 800, 300);
 chart1.init();
-var chart2 = new Chart("chart-container-2", data[2], 600, 300);
+var chart2 = new Chart("chart-container-2", data[2], 800, 300);
 chart2.init();
-var chart3 = new Chart("chart-container-3", data[3], 600, 300);
+var chart3 = new Chart("chart-container-3", data[3], 800, 300);
 chart3.init();
-var chart4 = new Chart("chart-container-4", data[4], 600, 300);
+var chart4 = new Chart("chart-container-4", data[4], 800, 300);
 chart4.init();
-
-
-const bubbleSort = arr => {
-	for (let i = 0; i < arr.length - 1; i++) {
-		let change = false;
-		for (let j = 0; j < arr.length - (i + 1); j++) {
-			if (arr[j] > arr[j + 1]) {
-				change = true;
-				[arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-			}
-		}
-		if (!change) break;
-	}
-	return arr;
-};
-const quickSort = arr => {
-	if (arr.length < 2) return arr;
-
-	const pivot = arr[Math.floor(Math.random() * arr.length)];
-
-	let left = [];
-	let equal = [];
-	let right = [];
-
-	for (let element of arr) {
-		if (element > pivot) right.push(element);
-		else if (element < pivot) left.push(element);
-		else equal.push(element);
-	}
-
-	return quickSort(left)
-		.concat(equal)
-		.concat(quickSort(right));
-};
-const radixSort = arr => {
-	const maxNum = Math.max(...arr) * 10;
-	let divisor = 10;
-
-	while (divisor < maxNum) {
-		let buckets = [...Array(10)].map(() => []);
-
-		for (let num of arr) {
-			buckets[Math.floor((num % divisor) / (divisor / 10))].push(num);
-		}
-
-		arr = [].concat.apply([], buckets);
-		divisor *= 10;
-	}
-	return arr;
-};
-
-const benchmark = arr => {
-	arr = arr
-		? arr
-		: [...Array(1000)].map(() => Math.floor(Math.random() * 1000));
-
-	const versions = [
-		{arr: [...arr], title: "Random"},
-		{arr: [...arr.sort((a, b) => a - b)], title: "Sorted"},
-		{arr: [...arr.reverse()], title: "Reversed"},
-		{arr: new Array(1000).fill(8), title: "Equal"}
-	];
-
-	const sorts = [
-		{func: bubbleSort, title: "Bubble"},
-		{func: quickSort, title: "Quick"},
-		{func: radixSort, title: "Radix"}
-	];
-
-	for (let {arr, title} of versions) {
-		console.log(`\n${title} Data`);
-		console.log("*******************************");
-		for (let {func, title} of sorts) {
-			const before = Date.now();
-			for (let i = 0; i < 1000; i++) {
-				func([...arr]);
-			}
-			console.log(`${title} Sort: ${(Date.now() - before) / 1000}sec`);
-		}
-	}
-};
-
-var a = [...Array(99000)].map(() => {
-	return {y: Math.floor(Math.random() * 10000)};
-});
-var b = a.map((e) => e.y);
-const before = Date.now();
-findMax(b);
-
-
-const before1 = Date.now();
-try {
-	Math.max.apply(null, b)
-} catch (e) {
-	console.log("Error of Math.max");
-}
-
-function findMax(arr) {
-	let max = arr[0];
-	for (let i = 1; i < arr.length; i++) {
-		var item = arr[i];
-		if (item > max) max = item;
-	}
-	return max;
-}

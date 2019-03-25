@@ -1,3 +1,6 @@
 March Coding Competition
 
 Clone repo and launch .html file in dist repository: chart\dist\chart.html
+
+dist directory contains babeled files (es2015)
+src direcotry contains sources from scratch
